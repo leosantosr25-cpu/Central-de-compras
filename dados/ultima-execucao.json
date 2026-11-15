@@ -1,18 +1,24 @@
 {
- "quando": "2026-11-15T15:57:18-03:00",
- "chamadas_ia": 40,
- "limite_atingido": true,
+ "quando": "2026-11-15T17:28:39-03:00",
+ "chamadas_ia": 2,
+ "limite_atingido": false,
+ "parou_por_tempo": false,
+ "erro_ia": "",
  "ofertas_novas": 0,
  "lojas": {
   "Tatico": {
-   "erro": "Gemini HTTP 404: b'{\\n  \"error\": {\\n    \"code\": 404,\\n    \"message\": \"This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for"
+   "imagens": 53,
+   "imagens_novas": 53,
+   "ofertas": 0
   },
   "Pro Brazilian": {
-   "erro": "Gemini HTTP 404: b'{\\n  \"error\": {\\n    \"code\": 404,\\n    \"message\": \"This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for"
+   "imagens": 0,
+   "imagens_novas": 0,
+   "ofertas": 0
   },
   "Assaí": {
-   "imagens": 4,
-   "imagens_novas": 4,
+   "imagens": 2,
+   "imagens_novas": 2,
    "ofertas": 0
   },
   "Costa Atacadão": {
