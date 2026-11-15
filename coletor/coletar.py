@@ -51,8 +51,10 @@ LOJAS = [
 ]
 
 # Limites para ficar dentro da camada gratuita da IA (podem ser mudados no workflow).
-LIMITE_CHAMADAS = int(os.environ.get("LIMITE_CHAMADAS") or 40)   # chamadas à IA por execução
+LIMITE_CHAMADAS = int(os.environ.get("LIMITE_CHAMADAS") or 18)   # chamadas à IA por execução
 PAUSA = float(os.environ.get("PAUSA_ENTRE_CHAMADAS") or 6)        # segundos entre chamadas
+LIMITE_POR_LOJA = int(os.environ.get("LIMITE_POR_LOJA") or 5)    # chamadas por loja (divide a cota entre elas)
+LOTE_IMAGENS = int(os.environ.get("LOTE_IMAGENS") or 4)           # imagens enviadas juntas em cada chamada
 TEMPO_MAX = float(os.environ.get("TEMPO_MAXIMO_MIN") or 18) * 60  # para de chamar a IA após N minutos
 DIAS_HISTORICO = 60                                               # quantos dias ficam no CSV
 
@@ -60,10 +62,13 @@ PROMPT = (
     "Você lê ofertas de supermercado do Brasil. Extraia TODOS os produtos que tenham preço visível. "
     "Responda somente com um array JSON; cada item no formato "
     '{"produto": "nome com marca e tamanho quando aparecerem (ex.: Arroz Branco Tio João 5kg)", '
-    '"preco": número em reais (ex.: 26.9)}. '
+    '"preco": número em reais (ex.: 26.9), "validade": "AAAA-MM-DD" se o encarte disser até quando vale, senão ""}. '
     "Regras: use o preço da embalagem/unidade como anunciado (só use preço por kg quando for o único); "
     "ignore itens sem preço legível; não invente nada; sem texto fora do JSON; se não houver ofertas, responda []."
 )
+
+PROMPT_LOTE = PROMPT + (" Vários encartes ou páginas do mesmo supermercado seguem anexados; "
+                        "leia todos e junte os produtos num único array.")
 
 JS_IMAGENS = r"""
 () => {
@@ -151,11 +156,13 @@ def chamar_gemini(partes):
                 dados = json.loads(r.read())
             break
         except urllib.error.HTTPError as e:
-            detalhe = e.read()[:600]
+            detalhe = e.read()[:1500]
             if e.code in (400, 401, 403, 404):
                 texto_erro = detalhe.decode("utf-8", "replace").replace("\n", " ")
                 raise ErroFatalIA(f"Gemini HTTP {e.code} (modelo '{modelo}'): {texto_erro}")
             if e.code == 429:
+                if b"per day" in detalhe.lower() or b"perday" in detalhe.lower():
+                    raise CotaEsgotada("limite diário da IA atingido (volta amanhã): " + detalhe[:200].decode("utf-8", "replace"))
                 if tentativa >= 1:
                     raise CotaEsgotada(f"limite da IA atingido (HTTP 429): {detalhe!r}")
                 time.sleep(30)
@@ -212,6 +219,9 @@ def normalizar_resposta(resp):
             continue
         if not (0.2 <= preco <= 5000):  # descarta leituras absurdas
             continue
+        validade = str(it.get("validade") or "").strip()
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", validade) and validade < hoje_iso():
+            continue  # encarte vencido
         saida.append((nome, round(preco, 2)))
     return saida
 
@@ -283,11 +293,37 @@ def parte_imagem(tipo, corpo):
     return {"inline_data": {"mime_type": tipo, "data": base64.b64encode(corpo).decode("ascii")}}
 
 
+def ler_telas(page, nome, url, run, lidos, hoje):
+    """Plano B: 'prints' da página, em fatias, lidos pela IA. Devolve lista de (produto, preco)."""
+    chave = f"tela:{nome}:{hoje}"
+    if chave in lidos:
+        return []
+    altura = int(page.evaluate("document.documentElement.scrollHeight"))
+    achados, completo = [], True
+    for y in range(0, min(altura, 9600), 2400):
+        h = min(2400, altura - y)
+        png = page.screenshot(clip={"x": 0, "y": y, "width": VIEW_W, "height": h},
+                              full_page=True, type="jpeg", quality=70)
+        try:
+            res = ler_com_ia([{"text": PROMPT}, parte_imagem("image/jpeg", png)], run)
+        except Exception as e:
+            log(f"  ! leitura do print: {str(e)[:150]}")
+            res = None
+        if res is None:
+            completo = False
+            break
+        achados += res
+    if completo:
+        lidos[chave] = hoje
+    return achados
+
+
 def coletar_loja(page, loja, estado, run, hoje):
     nome, url = loja["nome"], loja["url"]
     lidos = estado["lidos"]
-    resumo = {"imagens": 0, "imagens_novas": 0, "ofertas": 0}
+    resumo = {"imagens": 0, "imagens_novas": 0, "imagens_lidas": 0, "ofertas": 0}
     ofertas = []  # (produto, preco, link)
+    chamadas_antes = run["chamadas"]
 
     page.goto(url, wait_until="domcontentloaded", timeout=60000)
     try:
@@ -305,11 +341,9 @@ def coletar_loja(page, loja, estado, run, hoje):
     resumo["imagens"] = len(imagens)
     log(f"  texto: {len(texto)} caracteres, {texto.count('R$')} símbolos R$; imagens candidatas: {len(imagens)}")
 
-    leu_algo = False
-
     # 1) texto da página (mais barato e mais preciso que imagem)
-    if texto.count("R$") >= 5:
-        leu_algo = True
+    tem_texto = texto.count("R$") >= 5
+    if tem_texto:
         chave = f"texto:{nome}:{hashlib.sha1(texto.encode('utf-8')).hexdigest()[:16]}"
         if chave not in lidos:
             try:
@@ -321,46 +355,58 @@ def coletar_loja(page, loja, estado, run, hoje):
                 lidos[chave] = hoje
                 ofertas += [(p, v, url) for p, v in res]
 
-    # 2) imagens de encarte ainda não lidas
+    # 2) imagens de encarte ainda não lidas, várias por chamada (a cota da IA é por chamada)
     novas = [i for i in imagens if "img:" + i["url"] not in lidos]
     resumo["imagens_novas"] = len(novas)
+    baixadas = 0
+    lote, lote_urls, bytes_lote = [], [], 0
+
+    def enviar_lote():
+        nonlocal lote, lote_urls, bytes_lote
+        if not lote:
+            return "ok"
+        partes = [{"text": PROMPT_LOTE if len(lote) > 1 else PROMPT}] + lote
+        urls_lote = lote_urls
+        lote, lote_urls, bytes_lote = [], [], 0
+        try:
+            res = ler_com_ia(partes, run)
+        except Exception as e:  # falha pontual: não marca como lido, tenta de novo na próxima execução
+            log(f"  ! leitura do lote: {str(e)[:150]}")
+            return "falha"
+        if res is None:
+            return "parar"
+        for u in urls_lote:
+            lidos["img:" + u] = hoje
+        resumo["imagens_lidas"] += len(urls_lote)
+        ofertas.extend((p, v, url) for p, v in res)
+        return "ok"
+
     for img in novas:
-        leu_algo = True
+        if not lote and (run["parar"] or run["chamadas"] - chamadas_antes >= LIMITE_POR_LOJA):
+            break  # a cota do dia é dividida entre as lojas; o resto fica para a próxima execução
         try:
             baixada = baixar_imagem(page, img["url"], url)
-            if baixada is None:
-                lidos["img:" + img["url"]] = hoje  # ícone/arquivo estranho: não tentar de novo
-                continue
-            res = ler_com_ia([{"text": PROMPT}, parte_imagem(*baixada)], run)
         except Exception as e:  # uma imagem com problema não derruba a loja inteira
             log(f"  ! imagem {img['url'][-60:]}: {str(e)[:150]}")
             continue
-        if res is None:
-            break  # limite de chamadas/cota: o resto fica para a próxima execução
-        lidos["img:" + img["url"]] = hoje
-        ofertas += [(p, v, img["url"]) for p, v in res]
+        if baixada is None:
+            lidos["img:" + img["url"]] = hoje  # ícone/arquivo estranho: não tentar de novo
+            continue
+        baixadas += 1
+        tipo, corpo = baixada
+        if lote and bytes_lote + len(corpo) > 14 * 1024 * 1024:
+            if enviar_lote() == "parar":
+                break
+        lote.append(parte_imagem(tipo, corpo))
+        lote_urls.append(img["url"])
+        bytes_lote += len(corpo)
+        if len(lote) >= LOTE_IMAGENS and enviar_lote() == "parar":
+            break
+    enviar_lote()
 
-    # 3) sem texto de preços nem imagens: "prints" da página
-    if not leu_algo and not imagens:
-        chave = f"tela:{nome}:{hoje}"
-        if chave not in lidos:
-            altura = int(page.evaluate("document.documentElement.scrollHeight"))
-            completo = True
-            for y in range(0, min(altura, 9600), 2400):
-                h = min(2400, altura - y)
-                png = page.screenshot(clip={"x": 0, "y": y, "width": VIEW_W, "height": h},
-                                      full_page=True, type="jpeg", quality=70)
-                try:
-                    res = ler_com_ia([{"text": PROMPT}, parte_imagem("image/jpeg", png)], run)
-                except Exception as e:
-                    log(f"  ! leitura do print: {str(e)[:150]}")
-                    res = None
-                if res is None:
-                    completo = False
-                    break
-                ofertas += [(p, v, url) for p, v in res]
-            if completo:
-                lidos[chave] = hoje
+    # 3) plano B: sem texto de preços e sem imagens utilizáveis -> "prints" da página
+    if not tem_texto and (not imagens or (novas and baixadas == 0)):
+        ofertas += [(p, v, url) for p, v in ler_telas(page, nome, url, run, lidos, hoje)]
 
     resumo["ofertas"] = len(ofertas)
     return resumo, ofertas
