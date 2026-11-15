@@ -1,0 +1,2463 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#7c3aed">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Central de Compras da Casa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Firebase (login Google + banco em tempo real) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased pb-24 md:pb-12">
+    <div id="root"></div>
+
+    <!-- =====================================================================
+         BACKEND: nuvem (Firebase) ou modo local (localStorage)
+         Cole abaixo o firebaseConfig do seu projeto. Enquanto estiver com
+         "COLE_AQUI", o painel funciona em MODO LOCAL (sem sincronizar).
+         ===================================================================== -->
+    <script>
+        (function () {
+            var firebaseConfig = {
+                apiKey: "AIzaSyA0pd5yT4zc7e36kqww4iFdOFg0qbAL4ao",
+                authDomain: "central-compras-3305a.firebaseapp.com",
+                projectId: "central-compras-3305a",
+                appId: "1:1014698573272:web:e1f69c5496e1790e0d86ad"
+            };
+
+            var cloudOk = !!firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf('COLE') !== 0;
+            var limpar = function (obj) { return JSON.parse(JSON.stringify(obj)); }; // remove undefined (Firestore não aceita)
+
+            if (cloudOk) {
+                try {
+                    firebase.initializeApp(firebaseConfig);
+                    var auth = firebase.auth();
+                    var db = firebase.firestore();
+                    var col = function (nome) { return db.collection('casas').doc('familia').collection(nome); };
+
+                    window.CloudBackend = {
+                        mode: 'nuvem',
+                        onAuthChange: function (cb) { return auth.onAuthStateChanged(cb); },
+                        signIn: async function () {
+                            var provider = new firebase.auth.GoogleAuthProvider();
+                            try {
+                                await auth.signInWithPopup(provider);
+                            } catch (e) {
+                                if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') {
+                                    return auth.signInWithRedirect(provider);
+                                }
+                                if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') throw e;
+                            }
+                        },
+                        signOut: function () { return auth.signOut(); },
+                        subscribeCollection: function (nome, onData, onErr) {
+                            return col(nome).onSnapshot(function (snap) {
+                                onData(snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }));
+                            }, onErr);
+                        },
+                        saveDoc: function (nome, id, data) { return col(nome).doc(String(id)).set(limpar(data), { merge: true }); },
+                        removeDoc: function (nome, id) { return col(nome).doc(String(id)).delete(); }
+                    };
+                } catch (e) {
+                    console.error('Erro ao iniciar o Firebase', e);
+                    cloudOk = false;
+                }
+            }
+
+            if (!cloudOk) {
+                var listeners = {};
+                var ler = function (nome) { try { return JSON.parse(localStorage.getItem('cc2_' + nome) || '{}'); } catch (e) { return {}; } };
+                var gravar = function (nome, obj) {
+                    try { localStorage.setItem('cc2_' + nome, JSON.stringify(obj)); }
+                    catch (e) { alert('Armazenamento do navegador cheio. Remova fotos ou exporte um backup.'); }
+                };
+                var lista = function (nome) {
+                    var o = ler(nome);
+                    return Object.keys(o).map(function (id) { return Object.assign({ id: id }, o[id]); });
+                };
+                var emitir = function (nome) {
+                    (listeners[nome] || []).forEach(function (fn) { fn(lista(nome)); });
+                };
+                window.addEventListener('storage', function (e) {
+                    if (e.key && e.key.indexOf('cc2_') === 0) emitir(e.key.replace('cc2_', ''));
+                });
+
+                window.CloudBackend = {
+                    mode: 'local',
+                    onAuthChange: function (cb) { setTimeout(function () { cb({ uid: 'local', email: '' }); }, 0); return function () {}; },
+                    signIn: async function () {},
+                    signOut: async function () {},
+                    subscribeCollection: function (nome, onData) {
+                        listeners[nome] = listeners[nome] || [];
+                        listeners[nome].push(onData);
+                        setTimeout(function () { onData(lista(nome)); }, 0);
+                        return function () { listeners[nome] = listeners[nome].filter(function (f) { return f !== onData; }); };
+                    },
+                    saveDoc: async function (nome, id, data) {
+                        var o = ler(nome);
+                        o[String(id)] = Object.assign({}, o[String(id)] || {}, limpar(data));
+                        gravar(nome, o);
+                        emitir(nome);
+                    },
+                    removeDoc: async function (nome, id) {
+                        var o = ler(nome);
+                        delete o[String(id)];
+                        gravar(nome, o);
+                        emitir(nome);
+                    }
+                };
+            }
+        })();
+    </script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+        const CB = window.CloudBackend;
+
+        // ---------- Ícones (SVG embutidos: não dependem de biblioteca externa) ----------
+        const ICONS = {
+            'home': '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+            'package': '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+            'layers': '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+            'shopping-bag': '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+            'shopping-cart': '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+            'list-checks': '<path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>',
+            'tag': '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+            'trending-up': '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+            'wallet': '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+            'bar-chart-3': '<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+            'sparkles': '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>',
+            'camera': '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/>',
+            'globe': '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
+            'plus': '<path d="M5 12h14"/><path d="M12 5v14"/>',
+            'plus-circle': '<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>',
+            'search': '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+            'settings': '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+            'alert-circle': '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+            'check-circle': '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/>',
+            'alert-triangle': '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+            'x-circle': '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+            'clock': '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+            'log-out': '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>'
+        };
+
+        function Icon({ name, className = 'w-4 h-4' }) {
+            return (
+                <svg className={`${className} shrink-0`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: ICONS[name] || '' }} />
+            );
+        }
+
+        // ---------- Dados base ----------
+        const INITIAL_CATEGORIES = [
+            'Arroz e grãos', 'Massas', 'Mercearia', 'Biscoitos e snacks', 'Carnes', 'Frutas',
+            'Verduras e legumes', 'Laticínios', 'Bebidas', 'Padaria', 'Congelados', 'Enlatados',
+            'Temperos', 'Produtos de limpeza', 'Higiene pessoal', 'Produtos para casa', 'Outros'
+        ];
+
+        const INITIAL_ESTABLISHMENTS = [
+            'Supermercado Tatico',
+            'Supermercado Pro Brazilian',
+            'Supermercado Assaí Independência',
+            'Supermercado Costa Atacadão',
+            'Outro'
+        ];
+
+        // Catálogo de itens básicos de casa: [nome, unidade, quantidade padrão de compra, estoque mínimo]
+        const CATALOGO = {
+            'Arroz e grãos': [
+                ['Arroz branco 5kg', 'pacote', 1, 1], ['Arroz integral 1kg', 'pacote', 1, 1], ['Feijão carioca 1kg', 'pacote', 2, 1],
+                ['Feijão preto 1kg', 'pacote', 1, 1], ['Lentilha 500g', 'pacote', 1, 1], ['Grão-de-bico 500g', 'pacote', 1, 1],
+                ['Aveia em flocos 200g', 'pacote', 1, 1], ['Farinha de mandioca 500g', 'pacote', 1, 1], ['Fubá 1kg', 'pacote', 1, 1],
+                ['Milho de pipoca 500g', 'pacote', 1, 1], ['Granola 800g', 'pacote', 1, 1]
+            ],
+            'Massas': [
+                ['Macarrão espaguete 500g', 'pacote', 3, 2], ['Macarrão parafuso 500g', 'pacote', 2, 1], ['Macarrão penne 500g', 'pacote', 2, 1],
+                ['Miojo (macarrão instantâneo)', 'unidade', 5, 3], ['Massa de lasanha 500g', 'pacote', 1, 1], ['Macarrão cabelo de anjo 500g', 'pacote', 1, 1]
+            ],
+            'Mercearia': [
+                ['Açúcar refinado 1kg', 'pacote', 2, 1], ['Sal refinado 1kg', 'pacote', 1, 1], ['Óleo de soja 900ml', 'unidade', 2, 1],
+                ['Azeite de oliva 500ml', 'unidade', 1, 1], ['Vinagre 750ml', 'unidade', 1, 1], ['Farinha de trigo 1kg', 'pacote', 2, 1],
+                ['Amido de milho 200g', 'unidade', 1, 1], ['Fermento em pó', 'unidade', 1, 1], ['Leite condensado', 'unidade', 2, 1],
+                ['Creme de leite', 'unidade', 2, 1], ['Achocolatado em pó 400g', 'unidade', 1, 1], ['Mel 280g', 'unidade', 1, 1],
+                ['Maionese 500g', 'unidade', 1, 1], ['Ketchup 400g', 'unidade', 1, 1], ['Mostarda 200g', 'unidade', 1, 1],
+                ['Molho shoyu 150ml', 'unidade', 1, 1], ['Extrato de tomate', 'unidade', 2, 1], ['Molho de tomate sachê 340g', 'unidade', 3, 2],
+                ['Doce de leite', 'unidade', 1, 1], ['Geleia', 'unidade', 1, 1], ['Gelatina em pó', 'unidade', 2, 1]
+            ],
+            'Biscoitos e snacks': [
+                ['Bolacha recheada', 'pacote', 3, 1], ['Bolacha água e sal', 'pacote', 2, 1], ['Bolacha maisena', 'pacote', 2, 1],
+                ['Cream cracker', 'pacote', 2, 1], ['Salgadinho de milho', 'pacote', 2, 1], ['Pipoca de micro-ondas', 'pacote', 3, 1],
+                ['Chocolate em barra', 'unidade', 2, 1], ['Barra de cereal', 'unidade', 6, 2], ['Wafer', 'pacote', 2, 1],
+                ['Biscoito de polvilho', 'pacote', 1, 1], ['Torrada', 'pacote', 1, 1]
+            ],
+            'Carnes': [
+                ['Peito de frango', 'kg', 3, 1], ['Coxa e sobrecoxa', 'kg', 2, 1], ['Carne moída', 'kg', 2, 1],
+                ['Bife (patinho)', 'kg', 1, 1], ['Linguiça toscana', 'kg', 1, 1], ['Salsicha', 'kg', 1, 1],
+                ['Bacon', 'pacote', 1, 1], ['Filé de peixe', 'kg', 1, 1]
+            ],
+            'Frutas': [
+                ['Banana', 'kg', 2, 1], ['Maçã', 'kg', 1, 1], ['Laranja', 'kg', 2, 1], ['Limão', 'kg', 1, 1],
+                ['Mamão', 'unidade', 1, 1], ['Uva', 'kg', 1, 1], ['Abacaxi', 'unidade', 1, 1], ['Manga', 'kg', 1, 1], ['Abacate', 'unidade', 1, 1]
+            ],
+            'Verduras e legumes': [
+                ['Tomate', 'kg', 1, 1], ['Cebola', 'kg', 1, 1], ['Alho (cabeça)', 'unidade', 3, 1], ['Batata', 'kg', 2, 1],
+                ['Cenoura', 'kg', 1, 1], ['Alface', 'unidade', 1, 1], ['Cheiro-verde', 'maço', 1, 1], ['Pimentão', 'unidade', 2, 1],
+                ['Abobrinha', 'kg', 1, 1], ['Brócolis', 'unidade', 1, 1], ['Mandioca', 'kg', 1, 1], ['Chuchu', 'kg', 1, 1],
+                ['Couve', 'maço', 1, 1], ['Beterraba', 'kg', 1, 1]
+            ],
+            'Laticínios': [
+                ['Leite integral 1L', 'unidade', 12, 4], ['Leite em pó 400g', 'unidade', 1, 1], ['Ovos (dúzia)', 'dúzia', 2, 1],
+                ['Manteiga 200g', 'unidade', 1, 1], ['Margarina 500g', 'unidade', 1, 1], ['Queijo mussarela fatiado 200g', 'pacote', 2, 1],
+                ['Presunto fatiado 200g', 'pacote', 2, 1], ['Requeijão cremoso', 'unidade', 1, 1], ['Iogurte', 'unidade', 6, 2],
+                ['Queijo ralado', 'unidade', 1, 1], ['Cream cheese', 'unidade', 1, 1]
+            ],
+            'Bebidas': [
+                ['Água mineral 1,5L', 'unidade', 6, 2], ['Refrigerante 2L', 'unidade', 2, 1], ['Suco de caixinha 1L', 'unidade', 3, 1],
+                ['Suco em pó', 'unidade', 4, 2], ['Café torrado 500g', 'pacote', 2, 1], ['Chá (caixa)', 'caixa', 1, 1],
+                ['Cerveja (lata)', 'unidade', 12, 0], ['Água de coco', 'unidade', 2, 0]
+            ],
+            'Padaria': [
+                ['Pão de forma', 'pacote', 2, 1], ['Pão francês', 'unidade', 10, 0], ['Pão de hambúrguer', 'pacote', 1, 0],
+                ['Pão de cachorro-quente', 'pacote', 1, 0], ['Bolo pronto', 'unidade', 1, 0], ['Goma de tapioca 500g', 'pacote', 1, 1]
+            ],
+            'Congelados': [
+                ['Pão de queijo 400g', 'pacote', 2, 1], ['Hambúrguer', 'caixa', 1, 1], ['Nuggets', 'pacote', 1, 1],
+                ['Pizza congelada', 'unidade', 2, 0], ['Polpa de fruta', 'pacote', 4, 1], ['Sorvete 2L', 'unidade', 1, 0],
+                ['Legumes congelados', 'pacote', 2, 1], ['Batata palito congelada', 'pacote', 1, 0], ['Lasanha congelada', 'unidade', 1, 0]
+            ],
+            'Enlatados': [
+                ['Milho verde (lata)', 'lata', 3, 1], ['Ervilha (lata)', 'lata', 2, 1], ['Atum (lata)', 'lata', 3, 1],
+                ['Sardinha (lata)', 'lata', 3, 1], ['Seleta de legumes (lata)', 'lata', 1, 0], ['Palmito', 'unidade', 1, 0],
+                ['Azeitona', 'unidade', 1, 0], ['Pêssego em calda', 'lata', 1, 0]
+            ],
+            'Temperos': [
+                ['Pimenta-do-reino', 'unidade', 1, 1], ['Orégano', 'unidade', 1, 1], ['Colorau', 'unidade', 1, 1],
+                ['Cominho', 'unidade', 1, 1], ['Louro', 'unidade', 1, 1], ['Tempero completo', 'unidade', 1, 1],
+                ['Caldo de galinha', 'caixa', 2, 1], ['Caldo de carne', 'caixa', 1, 1], ['Páprica', 'unidade', 1, 0],
+                ['Canela', 'unidade', 1, 0]
+            ],
+            'Produtos de limpeza': [
+                ['Detergente líquido 500ml', 'unidade', 4, 2], ['Sabão em pó', 'caixa', 1, 1], ['Sabão em barra', 'pacote', 1, 1],
+                ['Amaciante', 'unidade', 1, 1], ['Água sanitária', 'unidade', 2, 1], ['Desinfetante', 'unidade', 2, 1],
+                ['Limpador multiuso', 'unidade', 1, 1], ['Esponja de cozinha', 'unidade', 3, 1], ['Saco de lixo', 'pacote', 2, 1],
+                ['Álcool 70%', 'unidade', 1, 1], ['Desengordurante', 'unidade', 1, 0], ['Pano de chão', 'unidade', 2, 0],
+                ['Limpa vidros', 'unidade', 1, 0], ['Sabão líquido para roupas', 'unidade', 1, 0], ['Palha de aço', 'pacote', 1, 1],
+                ['Inseticida', 'unidade', 1, 0]
+            ],
+            'Higiene pessoal': [
+                ['Sabonete (barra)', 'unidade', 6, 3], ['Sabonete líquido', 'unidade', 1, 1], ['Shampoo', 'unidade', 1, 1],
+                ['Condicionador', 'unidade', 1, 1], ['Creme dental', 'unidade', 3, 1], ['Escova de dente', 'unidade', 2, 1],
+                ['Enxaguante bucal', 'unidade', 1, 0], ['Fio dental', 'unidade', 1, 1], ['Desodorante', 'unidade', 2, 1],
+                ['Papel higiênico (pacote)', 'pacote', 2, 1], ['Absorvente', 'pacote', 2, 1], ['Algodão', 'pacote', 1, 0],
+                ['Cotonete', 'caixa', 1, 0], ['Lâmina de barbear', 'pacote', 1, 0], ['Hidratante corporal', 'unidade', 1, 0],
+                ['Protetor solar', 'unidade', 1, 0]
+            ],
+            'Produtos para casa': [
+                ['Papel toalha', 'pacote', 2, 1], ['Guardanapo', 'pacote', 2, 1], ['Filtro de café', 'caixa', 1, 1],
+                ['Papel alumínio', 'unidade', 1, 1], ['Filme PVC', 'unidade', 1, 1], ['Pilha AA', 'pacote', 1, 0],
+                ['Lâmpada LED', 'unidade', 2, 0], ['Fósforo', 'pacote', 1, 1], ['Vela', 'pacote', 1, 0],
+                ['Saco para freezer', 'caixa', 1, 0], ['Papel manteiga', 'unidade', 1, 0], ['Palito de dente', 'caixa', 1, 0]
+            ],
+            'Outros': [
+                ['Ração para pet', 'kg', 1, 1], ['Areia para gato', 'unidade', 1, 1]
+            ]
+        };
+
+        // ---------- Funções utilitárias ----------
+        const fmtLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const hojeISO = () => fmtLocal(new Date());
+        const normalizar = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        const slug = (s) => normalizar(s).replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const dinheiro = (v) => Number(v || 0).toFixed(2);
+
+        function comprimirImagem(file, maxWidth = 420, quality = 0.72) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = reject;
+                    img.src = event.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function calcularDiasParaVencer(dataStr) {
+            if (!dataStr) return null;
+            const [ano, mes, dia] = dataStr.split('-').map(Number);
+            if (!ano || !mes || !dia) return null;
+            const dataVal = new Date(ano, mes - 1, dia);
+            const agora = new Date();
+            const hoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+            return Math.round((dataVal - hoje) / (1000 * 60 * 60 * 24));
+        }
+
+        const COLECOES_BACKUP = [
+            ['produtos', 'products'],
+            ['lotesValidade', 'product_expiration'],
+            ['compras', 'purchases'],
+            ['historicoPrecos', 'price_history'],
+            ['consumos', 'consumption'],
+            ['listaCompras', 'shopping_list']
+        ];
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [authPronto, setAuthPronto] = useState(false);
+            const [loading, setLoading] = useState(true);
+            const [syncStatus, setSyncStatus] = useState('conectando');
+            const [erroNuvem, setErroNuvem] = useState('');
+            const [erroLogin, setErroLogin] = useState('');
+
+            const [produtos, setProdutos] = useState([]);
+            const [compras, setCompras] = useState([]);
+            const [lotesValidade, setLotesValidade] = useState([]);
+            const [historicoPrecos, setHistoricoPrecos] = useState([]);
+            const [consumos, setConsumos] = useState([]);
+            const [listaCompras, setListaCompras] = useState([]);
+
+            const [abaAtiva, setAbaAtiva] = useState('inicio');
+            const [modalProduto, setModalProduto] = useState(null);
+            const [modalCatalogo, setModalCatalogo] = useState(false);
+            const [modalCompra, setModalCompra] = useState(false);
+            const [modalConsumo, setModalConsumo] = useState(null);
+            const [modalDetalheCompra, setModalDetalheCompra] = useState(null);
+            const [modalBuscaGlobal, setModalBuscaGlobal] = useState(false);
+            const [modalConfig, setModalConfig] = useState(false);
+            const [fotoAmpliada, setFotoAmpliada] = useState(null);
+            const [toast, setToast] = useState(null);
+
+            const uid = user ? user.uid : null;
+
+            const mostrarToast = (msg, tipo = 'sucesso') => {
+                setToast({ msg, tipo });
+                setTimeout(() => setToast(null), 3500);
+            };
+
+            // ---- Autenticação ----
+            useEffect(() => {
+                return CB.onAuthChange((u) => {
+                    setUser(u || null);
+                    setAuthPronto(true);
+                    if (!u) { setLoading(true); setErroNuvem(''); }
+                });
+            }, []);
+
+            // ---- Escuta as coleções em tempo real ----
+            useEffect(() => {
+                if (!uid) return;
+                setLoading(true);
+                setSyncStatus('sincronizando');
+                setErroNuvem('');
+                const carregados = new Set();
+                const marcar = (nome) => {
+                    carregados.add(nome);
+                    if (carregados.size === 6) { setLoading(false); setSyncStatus('online'); }
+                };
+                const falha = (err) => {
+                    console.error(err);
+                    setSyncStatus('erro');
+                    setErroNuvem(err && err.code === 'permission-denied'
+                        ? 'Este e-mail não tem permissão para acessar os dados. Confira as regras do Firestore.'
+                        : 'Erro de sincronização: ' + ((err && err.message) || 'desconhecido'));
+                    setLoading(false);
+                };
+                const assinar = (nome, setter, ordenar) => CB.subscribeCollection(nome, (d) => {
+                    setter(ordenar ? d.sort(ordenar) : d);
+                    marcar(nome);
+                }, falha);
+
+                const unsubs = [
+                    assinar('products', setProdutos, (a, b) => (a.name || '').localeCompare(b.name || '')),
+                    assinar('purchases', setCompras, (a, b) => (b.purchase_date || '').localeCompare(a.purchase_date || '')),
+                    assinar('product_expiration', setLotesValidade, (a, b) => (a.expiration_date || '9999').localeCompare(b.expiration_date || '9999')),
+                    assinar('price_history', setHistoricoPrecos, (a, b) => (b.date || '').localeCompare(a.date || '')),
+                    assinar('consumption', setConsumos, (a, b) => (b.consumed_at || '').localeCompare(a.consumed_at || '')),
+                    assinar('shopping_list', setListaCompras, null)
+                ];
+                return () => unsubs.forEach(u => u());
+            }, [uid]);
+
+            // ---- Métricas ----
+            const produtosComEstoque = useMemo(() => {
+                return produtos.map(p => {
+                    const lotes = lotesValidade.filter(l => l.product_id === p.id);
+                    const stockTotal = Number(lotes.reduce((acc, l) => acc + Number(l.quantity || 0), 0).toFixed(3));
+                    return { ...p, stockTotal, lotes };
+                });
+            }, [produtos, lotesValidade]);
+
+            const itensAbaixoMinimo = useMemo(() => {
+                return produtosComEstoque.filter(p => p.stockTotal <= Number(p.minimum_stock || 0));
+            }, [produtosComEstoque]);
+
+            const pendentesLista = useMemo(() => {
+                const manuais = listaCompras.filter(l => !l.purchased).length;
+                const sugeridosNovos = itensAbaixoMinimo.filter(p => !listaCompras.some(l => !l.purchased && l.product_id === p.id)).length;
+                return manuais + sugeridosNovos;
+            }, [listaCompras, itensAbaixoMinimo]);
+
+            const metricasGasto = useMemo(() => {
+                const agora = new Date();
+                const hojeZero = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+                const inicioSemana = new Date(hojeZero);
+                inicioSemana.setDate(hojeZero.getDate() - 6);
+                let semana = 0, mes = 0;
+                compras.forEach(c => {
+                    if (!c.purchase_date) return;
+                    const [y, m, d] = c.purchase_date.split('-').map(Number);
+                    const dt = new Date(y, m - 1, d);
+                    const val = Number(c.total || 0);
+                    if (dt >= inicioSemana && dt <= agora) semana += val;
+                    if (dt.getMonth() === agora.getMonth() && dt.getFullYear() === agora.getFullYear()) mes += val;
+                });
+                return { semana, mes };
+            }, [compras]);
+
+            const ofertasEncontradas = useMemo(() => {
+                return produtos.map(p => {
+                    const hist = historicoPrecos.filter(h => h.product_id === p.id && Number(h.price) > 0);
+                    if (hist.length < 2) return null;
+                    const precos = hist.map(h => Number(h.price));
+                    const media = precos.reduce((a, b) => a + b, 0) / precos.length;
+                    const menor = Math.min(...precos);
+                    const precoAtual = Number(hist[0].price);
+                    if (precoAtual < media) {
+                        return {
+                            ...p, precoAtual, media, menor,
+                            desconto: ((media - precoAtual) / media) * 100,
+                            economia: media - precoAtual,
+                            estabelecimento: hist[0].source || 'Supermercado',
+                            dataPreco: hist[0].date
+                        };
+                    }
+                    return null;
+                }).filter(Boolean).sort((a, b) => b.desconto - a.desconto);
+            }, [produtos, historicoPrecos]);
+
+            const estimativaProximaSemana = useMemo(() => {
+                let total = 0, itensBase = 0;
+                itensAbaixoMinimo.forEach(p => {
+                    const hist = historicoPrecos.find(h => h.product_id === p.id && Number(h.price) > 0);
+                    if (hist) {
+                        const qtd = Math.max(Number(p.default_quantity || 1), Number(p.minimum_stock || 1) - p.stockTotal);
+                        total += Number(hist.price) * (qtd > 0 ? qtd : 1);
+                        itensBase++;
+                    }
+                });
+                return { total, itensBase };
+            }, [itensAbaixoMinimo, historicoPrecos]);
+
+            // ---- Ações ----
+            const executar = async (fn, erroMsg = 'Não foi possível concluir a operação.') => {
+                try { await fn(); return true; }
+                catch (err) { console.error(err); mostrarToast(erroMsg, 'erro'); return false; }
+            };
+
+            const baixarDosLotes = async (prod, qtd) => {
+                let restante = qtd;
+                const ordenados = [...prod.lotes].sort((a, b) => (a.expiration_date || '9999').localeCompare(b.expiration_date || '9999'));
+                for (const lote of ordenados) {
+                    if (restante <= 0) break;
+                    const q = Number(lote.quantity);
+                    if (q <= restante) {
+                        restante = Number((restante - q).toFixed(3));
+                        await CB.removeDoc('product_expiration', lote.id);
+                    } else {
+                        await CB.saveDoc('product_expiration', lote.id, { quantity: Number((q - restante).toFixed(3)) });
+                        restante = 0;
+                    }
+                }
+            };
+
+            const ajustarEstoqueRapido = (prod, delta) => executar(async () => {
+                if (delta < 0) {
+                    const qtd = Math.abs(delta);
+                    if (prod.stockTotal < qtd) { mostrarToast('Estoque insuficiente.', 'erro'); return; }
+                    await baixarDosLotes(prod, qtd);
+                    await CB.saveDoc('consumption', `cons_${Date.now()}`, {
+                        product_id: prod.id, product_name: prod.name, quantity: qtd,
+                        consumed_at: new Date().toISOString(), notes: 'Consumo rápido (-1)'
+                    });
+                    mostrarToast(`-1 ${prod.unit} de ${prod.name}`);
+                } else {
+                    const semData = prod.lotes.find(l => !l.expiration_date);
+                    if (semData) {
+                        await CB.saveDoc('product_expiration', semData.id, { quantity: Number((Number(semData.quantity) + delta).toFixed(3)) });
+                    } else {
+                        await CB.saveDoc('product_expiration', `lote_${Date.now()}`, { product_id: prod.id, quantity: delta, expiration_date: '' });
+                    }
+                    mostrarToast(`+1 ${prod.unit} em ${prod.name}`);
+                }
+            });
+
+            const excluirProduto = async (prod) => {
+                if (!confirm(`Excluir "${prod.name}"? O estoque e os itens da lista ligados a ele também serão removidos.`)) return;
+                await executar(async () => {
+                    for (const l of lotesValidade.filter(x => x.product_id === prod.id)) await CB.removeDoc('product_expiration', l.id);
+                    for (const l of listaCompras.filter(x => x.product_id === prod.id)) await CB.removeDoc('shopping_list', l.id);
+                    await CB.removeDoc('products', prod.id);
+                    mostrarToast('Produto excluído.');
+                });
+            };
+
+            const excluirCompra = async (compra) => {
+                if (!confirm('Excluir esta compra? O que restar em estoque dela e os preços registrados nela serão removidos.')) return;
+                await executar(async () => {
+                    for (const l of lotesValidade.filter(x => x.purchase_id === compra.id)) await CB.removeDoc('product_expiration', l.id);
+                    for (const h of historicoPrecos.filter(x => x.purchase_id === compra.id)) await CB.removeDoc('price_history', h.id);
+                    await CB.removeDoc('purchases', compra.id);
+                    setModalDetalheCompra(null);
+                    mostrarToast('Compra excluída.');
+                });
+            };
+
+            const adicionarDoCatalogo = async (itens, jaTenho) => {
+                await executar(async () => {
+                    await Promise.all(itens.map(async (it) => {
+                        const id = `cat_${slug(it.nome)}`;
+                        await CB.saveDoc('products', id, {
+                            name: it.nome, category: it.categoria, brand: '', unit: it.unidade,
+                            default_quantity: it.qtd, minimum_stock: it.min, image_url: '', notes: '', is_demo: false
+                        });
+                        if (jaTenho) {
+                            await CB.saveDoc('product_expiration', `lote_${id}_ini`, {
+                                product_id: id, quantity: it.qtd, expiration_date: '', is_demo: false
+                            });
+                        }
+                    }));
+                    mostrarToast(`${itens.length} produto(s) adicionado(s)!`);
+                    setModalCatalogo(false);
+                }, 'Erro ao adicionar itens do catálogo.');
+            };
+
+            const carregarDadosDemonstracao = () => executar(async () => {
+                const hoje = new Date();
+                const dia = (delta) => { const d = new Date(hoje); d.setDate(hoje.getDate() + delta); return fmtLocal(d); };
+                const prods = [
+                    { id: 'demo_1', name: 'Arroz Tio João 5kg', category: 'Arroz e grãos', brand: 'Tio João', unit: 'pacote', default_quantity: 2, minimum_stock: 2 },
+                    { id: 'demo_2', name: 'Café Pilão 500g', category: 'Bebidas', brand: 'Pilão', unit: 'pacote', default_quantity: 2, minimum_stock: 1 },
+                    { id: 'demo_3', name: 'Leite Integral 1L', category: 'Laticínios', brand: 'Italac', unit: 'L', default_quantity: 12, minimum_stock: 4 },
+                    { id: 'demo_4', name: 'Detergente Ypê 500ml', category: 'Produtos de limpeza', brand: 'Ypê', unit: 'unidade', default_quantity: 4, minimum_stock: 2 }
+                ];
+                for (const p of prods) await CB.saveDoc('products', p.id, { ...p, notes: 'Dados de demonstração', image_url: '', is_demo: true });
+                await CB.saveDoc('product_expiration', 'demo_lote_1', { product_id: 'demo_1', quantity: 1, expiration_date: dia(180), is_demo: true });
+                await CB.saveDoc('product_expiration', 'demo_lote_2', { product_id: 'demo_3', quantity: 3, expiration_date: dia(3), is_demo: true });
+                await CB.saveDoc('price_history', 'demo_ph_1', { product_id: 'demo_2', product_name: 'Café Pilão 500g', price: 21.9, date: dia(-15), source: 'Supermercado Tatico', is_demo: true });
+                await CB.saveDoc('price_history', 'demo_ph_2', { product_id: 'demo_2', product_name: 'Café Pilão 500g', price: 17.5, date: dia(-2), source: 'Supermercado Assaí Independência', is_demo: true });
+                await CB.saveDoc('price_history', 'demo_ph_3', { product_id: 'demo_1', product_name: 'Arroz Tio João 5kg', price: 28.9, date: dia(-2), source: 'Supermercado Costa Atacadão', is_demo: true });
+                await CB.saveDoc('purchases', 'demo_comp_1', {
+                    purchase_date: dia(-2), notes: 'Supermercado Assaí Independência', total: 94.8, is_demo: true,
+                    purchase_items: [
+                        { product_id: 'demo_2', product_name: 'Café Pilão 500g', quantity: 2, unit_price: 17.5, total_price: 35 },
+                        { product_id: 'demo_3', product_name: 'Leite Integral 1L', quantity: 12, unit_price: 4.98, total_price: 59.8 }
+                    ]
+                });
+                mostrarToast('Exemplos carregados!');
+            });
+
+            const limparDadosDemonstracao = () => executar(async () => {
+                const idsDemo = new Set(produtos.filter(p => p.is_demo).map(p => p.id));
+                const ehDemo = (i) => i.is_demo || (i.product_id && idsDemo.has(i.product_id));
+                const grupos = [
+                    ['products', produtos], ['product_expiration', lotesValidade], ['price_history', historicoPrecos],
+                    ['purchases', compras], ['consumption', consumos], ['shopping_list', listaCompras]
+                ];
+                for (const [nome, lista] of grupos) {
+                    for (const item of lista.filter(ehDemo)) await CB.removeDoc(nome, item.id);
+                }
+                mostrarToast('Exemplos removidos.');
+            });
+
+            const sair = () => { if (confirm('Sair da sua conta neste aparelho?')) CB.signOut(); };
+
+            // ---- Telas de estado ----
+            if (!authPronto) {
+                return <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">Carregando...</div>;
+            }
+
+            if (!user) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
+                        <div className="bg-white rounded-3xl shadow-lg p-8 max-w-sm w-full text-center space-y-4 border border-slate-200">
+                            <div className="mx-auto bg-violet-700 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl">🛒</div>
+                            <h1 className="text-xl font-bold text-violet-800">Central de Compras da Casa</h1>
+                            <p className="text-xs text-slate-500">Entre com a conta Google autorizada para sincronizar seus dados em todos os aparelhos.</p>
+                            {erroLogin && <p className="text-xs text-rose-600">{erroLogin}</p>}
+                            <button onClick={async () => { try { setErroLogin(''); await CB.signIn(); } catch (e) { setErroLogin('Erro ao entrar: ' + e.message); } }} className="w-full bg-violet-700 hover:bg-violet-600 text-white py-3 rounded-xl text-sm font-bold shadow">
+                                Entrar com Google
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (erroNuvem) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
+                        <div className="bg-white rounded-3xl shadow-lg p-8 max-w-sm w-full text-center space-y-4 border border-rose-200">
+                            <h1 className="text-lg font-bold text-rose-700">Não foi possível sincronizar</h1>
+                            <p className="text-xs text-slate-600">{erroNuvem}</p>
+                            {user.email && <p className="text-[11px] text-slate-400">Conectado como {user.email}</p>}
+                            <button onClick={() => CB.signOut()} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl text-sm font-bold">Sair e trocar de conta</button>
+                            <button onClick={() => window.location.reload()} className="w-full text-xs text-violet-700 font-bold">Tentar novamente</button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (loading) {
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6">
+                        <div className="w-12 h-12 border-4 border-violet-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                        <p className="text-sm font-bold text-slate-700">Conectando à Central de Compras...</p>
+                        <p className="text-xs text-slate-400 mt-1">Sincronizando dados</p>
+                    </div>
+                );
+            }
+
+            const temDemo = produtos.some(p => p.is_demo);
+            const modoLocal = CB.mode === 'local';
+            const saudacao = (() => { const h = new Date().getHours(); return h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'; })();
+
+            return (
+                <div className="min-h-screen pb-24 md:pb-12 bg-slate-50">
+                    {toast && (
+                        <div className={`fixed top-4 right-4 z-[60] text-white px-4 py-3 rounded-2xl shadow-xl flex items-center space-x-2 ${toast.tipo === 'erro' ? 'bg-rose-600' : 'bg-violet-700'}`}>
+                            <Icon name={toast.tipo === 'erro' ? 'alert-circle' : 'check-circle'} className="w-5 h-5" />
+                            <span className="font-medium text-xs sm:text-sm">{toast.msg}</span>
+                        </div>
+                    )}
+
+                    <header className="bg-gradient-to-r from-violet-800 via-purple-800 to-indigo-900 text-white shadow-lg sticky top-0 z-40">
+                        <div className="max-w-6xl mx-auto px-4 py-3.5 flex justify-between items-center">
+                            <div className="flex items-center space-x-3">
+                                <div className="bg-white/15 p-2.5 rounded-2xl border border-white/20">
+                                    <Icon name="shopping-cart" className="w-6 h-6 text-purple-100" />
+                                </div>
+                                <div>
+                                    <div className="flex items-center space-x-2">
+                                        <h1 className="text-base sm:text-lg font-bold tracking-tight">Central de Compras</h1>
+                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${modoLocal ? 'bg-amber-500/25 text-amber-200' : 'bg-emerald-500/25 text-emerald-200'}`}>
+                                            {modoLocal ? '💾 Modo local' : '☁️ Nuvem ativa'}
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] text-purple-200">Tatico • Pro Brazilian • Assaí • Costa{user.email ? ` • ${user.email}` : ''}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <button onClick={() => setModalBuscaGlobal(true)} className="bg-white/15 hover:bg-white/25 p-2.5 rounded-xl transition" title="Pesquisa global">
+                                    <Icon name="search" className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => setModalConfig(true)} className="bg-white/15 hover:bg-white/25 p-2.5 rounded-xl transition" title="Configurações e backup">
+                                    <Icon name="settings" className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => setModalCompra(true)} className="bg-white text-violet-800 hover:bg-purple-50 text-xs sm:text-sm px-3.5 py-2 rounded-xl font-bold flex items-center space-x-1.5 shadow-md transition">
+                                    <Icon name="plus" className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Nova Compra</span>
+                                    <span className="sm:hidden">Compra</span>
+                                </button>
+                                {!modoLocal && (
+                                    <button onClick={sair} className="bg-white/15 hover:bg-white/25 p-2.5 rounded-xl transition" title="Sair">
+                                        <Icon name="log-out" className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="hidden md:block bg-black/15 border-t border-white/10">
+                            <div className="max-w-6xl mx-auto px-4 flex space-x-1 py-1.5 overflow-x-auto no-scrollbar">
+                                <DesktopNavBtn ativo={abaAtiva === 'inicio'} onClick={() => setAbaAtiva('inicio')} icon="home" label="Início" />
+                                <DesktopNavBtn ativo={abaAtiva === 'produtos'} onClick={() => setAbaAtiva('produtos')} icon="package" label="Produtos" />
+                                <DesktopNavBtn ativo={abaAtiva === 'estoque'} onClick={() => setAbaAtiva('estoque')} icon="layers" label="Estoque & Validade" />
+                                <DesktopNavBtn ativo={abaAtiva === 'compras'} onClick={() => setAbaAtiva('compras')} icon="shopping-bag" label="Compras" />
+                                <DesktopNavBtn ativo={abaAtiva === 'lista'} onClick={() => setAbaAtiva('lista')} icon="list-checks" label="Lista de Compras" badge={pendentesLista} />
+                                <DesktopNavBtn ativo={abaAtiva === 'ofertas'} onClick={() => setAbaAtiva('ofertas')} icon="tag" label="Ofertas" />
+                                <DesktopNavBtn ativo={abaAtiva === 'monitor'} onClick={() => setAbaAtiva('monitor')} icon="globe" label="Sites dos mercados" />
+                                <DesktopNavBtn ativo={abaAtiva === 'precos'} onClick={() => setAbaAtiva('precos')} icon="trending-up" label="Preços" />
+                                <DesktopNavBtn ativo={abaAtiva === 'gastos'} onClick={() => setAbaAtiva('gastos')} icon="wallet" label="Gastos" />
+                                <DesktopNavBtn ativo={abaAtiva === 'relatorios'} onClick={() => setAbaAtiva('relatorios')} icon="bar-chart-3" label="Relatórios" />
+                            </div>
+                        </div>
+                    </header>
+
+                    {modoLocal && (
+                        <div className="max-w-6xl mx-auto px-4 pt-4">
+                            <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2.5 text-xs text-amber-800">
+                                💾 <strong>Modo local:</strong> os dados ficam só neste navegador. Para sincronizar entre aparelhos, preencha o <code>firebaseConfig</code> no início do arquivo.
+                            </div>
+                        </div>
+                    )}
+
+                    {produtos.length === 0 && (
+                        <div className="max-w-6xl mx-auto px-4 pt-4">
+                            <div className="bg-violet-100 border border-violet-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                <div className="text-xs text-violet-900">
+                                    <strong>Sua despensa está vazia!</strong> Adicione de uma vez os itens que sua casa costuma consumir (sabonete, macarrão, miojo, bolacha recheada...) ou cadastre um por um.
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <button onClick={() => setModalCatalogo(true)} className="bg-violet-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm">📋 Catálogo de itens básicos</button>
+                                    <button onClick={() => setModalProduto(true)} className="bg-white text-violet-800 border border-violet-300 px-3.5 py-2 rounded-xl text-xs font-bold">+ Cadastrar produto</button>
+                                    <button onClick={carregarDadosDemonstracao} className="bg-white text-violet-800 border border-violet-300 px-3.5 py-2 rounded-xl text-xs font-bold">Carregar exemplos</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {temDemo && (
+                        <div className="max-w-6xl mx-auto px-4 pt-4">
+                            <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3 text-xs text-amber-800">
+                                <span>ℹ️ Você tem <strong>dados de demonstração</strong> cadastrados.</span>
+                                <button onClick={limparDadosDemonstracao} className="font-bold underline hover:text-amber-950 whitespace-nowrap">Limpar exemplos</button>
+                            </div>
+                        </div>
+                    )}
+
+                    <main className="max-w-6xl mx-auto px-4 py-6">
+                        {abaAtiva === 'inicio' && (
+                            <Dashboard
+                                saudacao={saudacao}
+                                produtosComEstoque={produtosComEstoque}
+                                itensAbaixoMinimo={itensAbaixoMinimo}
+                                metricasGasto={metricasGasto}
+                                estimativaProximaSemana={estimativaProximaSemana}
+                                ofertas={ofertasEncontradas}
+                                pendentesLista={pendentesLista}
+                                setAbaAtiva={setAbaAtiva}
+                                onNovaCompra={() => setModalCompra(true)}
+                                onNovoProduto={() => setModalProduto(true)}
+                                onConsumir={(p) => setModalConsumo(p)}
+                                onFotoAmpliada={setFotoAmpliada}
+                            />
+                        )}
+                        {abaAtiva === 'produtos' && (
+                            <ProdutosView
+                                produtosComEstoque={produtosComEstoque}
+                                onNovoProduto={() => setModalProduto(true)}
+                                onCatalogo={() => setModalCatalogo(true)}
+                                onEditarProduto={(p) => setModalProduto(p)}
+                                onExcluirProduto={excluirProduto}
+                                onFotoAmpliada={setFotoAmpliada}
+                            />
+                        )}
+                        {abaAtiva === 'estoque' && (
+                            <EstoqueView
+                                produtosComEstoque={produtosComEstoque}
+                                onConsumir={(p) => setModalConsumo(p)}
+                                onAjusteRapido={ajustarEstoqueRapido}
+                                onAdicionarLote={(prodId, qtd, validade) => executar(async () => {
+                                    await CB.saveDoc('product_expiration', `lote_${Date.now()}`, { product_id: prodId, quantity: Number(qtd), expiration_date: validade || '' });
+                                    mostrarToast('Lote adicionado ao estoque!');
+                                })}
+                                onDescartarVencido={async (lote, prod) => {
+                                    if (!confirm(`Descartar ${lote.quantity} ${prod.unit} de ${prod.name}?`)) return;
+                                    await executar(async () => {
+                                        await CB.removeDoc('product_expiration', lote.id);
+                                        await CB.saveDoc('consumption', `desc_${Date.now()}`, {
+                                            product_id: prod.id, product_name: prod.name, quantity: Number(lote.quantity),
+                                            consumed_at: new Date().toISOString(), notes: 'Descarte por vencimento'
+                                        });
+                                        mostrarToast('Item vencido descartado.');
+                                    });
+                                }}
+                                onFotoAmpliada={setFotoAmpliada}
+                            />
+                        )}
+                        {abaAtiva === 'compras' && (
+                            <ComprasView compras={compras} onNovaCompra={() => setModalCompra(true)} onVerDetalhes={(c) => setModalDetalheCompra(c)} />
+                        )}
+                        {abaAtiva === 'lista' && (
+                            <ListaComprasView
+                                listaCompras={listaCompras}
+                                itensAbaixoMinimo={itensAbaixoMinimo}
+                                onComprar={() => setModalCompra(true)}
+                                executar={executar}
+                                mostrarToast={mostrarToast}
+                            />
+                        )}
+                        {abaAtiva === 'ofertas' && <OfertasView ofertas={ofertasEncontradas} onFotoAmpliada={setFotoAmpliada} />}
+                        <MonitorOfertas visivel={abaAtiva === 'monitor'} produtos={produtos} historicoPrecos={historicoPrecos} executar={executar} mostrarToast={mostrarToast} />
+                        {abaAtiva === 'precos' && <PrecosView historicoPrecos={historicoPrecos} />}
+                        {abaAtiva === 'gastos' && <GastosView compras={compras} metricasGasto={metricasGasto} estimativaProximaSemana={estimativaProximaSemana} />}
+                        {abaAtiva === 'relatorios' && <RelatoriosView produtosComEstoque={produtosComEstoque} consumos={consumos} />}
+                    </main>
+
+                    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 py-2 px-1 shadow-lg z-30 md:hidden overflow-x-auto no-scrollbar">
+                        <div className="flex justify-around items-center min-w-max px-2 space-x-1">
+                            <NavBtn ativo={abaAtiva === 'inicio'} onClick={() => setAbaAtiva('inicio')} icon="home" label="Início" />
+                            <NavBtn ativo={abaAtiva === 'produtos'} onClick={() => setAbaAtiva('produtos')} icon="package" label="Produtos" />
+                            <NavBtn ativo={abaAtiva === 'estoque'} onClick={() => setAbaAtiva('estoque')} icon="layers" label="Estoque" />
+                            <NavBtn ativo={abaAtiva === 'compras'} onClick={() => setAbaAtiva('compras')} icon="shopping-bag" label="Compras" />
+                            <NavBtn ativo={abaAtiva === 'lista'} onClick={() => setAbaAtiva('lista')} icon="list-checks" label="Lista" badge={pendentesLista} />
+                            <NavBtn ativo={abaAtiva === 'ofertas'} onClick={() => setAbaAtiva('ofertas')} icon="tag" label="Ofertas" />
+                            <NavBtn ativo={abaAtiva === 'monitor'} onClick={() => setAbaAtiva('monitor')} icon="globe" label="Sites" />
+                            <NavBtn ativo={abaAtiva === 'precos'} onClick={() => setAbaAtiva('precos')} icon="trending-up" label="Preços" />
+                            <NavBtn ativo={abaAtiva === 'gastos'} onClick={() => setAbaAtiva('gastos')} icon="wallet" label="Gastos" />
+                            <NavBtn ativo={abaAtiva === 'relatorios'} onClick={() => setAbaAtiva('relatorios')} icon="bar-chart-3" label="Relatórios" />
+                        </div>
+                    </nav>
+
+                    {modalCompra && (
+                        <ModalCompra
+                            produtos={produtos}
+                            historicoPrecos={historicoPrecos}
+                            listaCompras={listaCompras}
+                            establishments={INITIAL_ESTABLISHMENTS}
+                            onClose={() => setModalCompra(false)}
+                            onSalvo={() => { setModalCompra(false); mostrarToast('Compra salva e estoque atualizado!'); }}
+                            onNovoProduto={() => setModalProduto(true)}
+                            onCatalogo={() => setModalCatalogo(true)}
+                            mostrarToast={mostrarToast}
+                        />
+                    )}
+
+                    {modalConsumo && (
+                        <ModalConsumo
+                            produto={modalConsumo}
+                            baixarDosLotes={baixarDosLotes}
+                            onClose={() => setModalConsumo(null)}
+                            onSalvo={() => { setModalConsumo(null); mostrarToast('Consumo registrado!'); }}
+                            mostrarToast={mostrarToast}
+                        />
+                    )}
+
+                    {modalDetalheCompra && (
+                        <ModalDetalheCompra compra={modalDetalheCompra} onClose={() => setModalDetalheCompra(null)} onExcluir={() => excluirCompra(modalDetalheCompra)} />
+                    )}
+
+                    {modalBuscaGlobal && (
+                        <ModalBuscaGlobal produtosComEstoque={produtosComEstoque} historicoPrecos={historicoPrecos} onClose={() => setModalBuscaGlobal(false)} />
+                    )}
+
+                    {modalConfig && (
+                        <ModalConfig
+                            user={user}
+                            modoLocal={modoLocal}
+                            dados={{ produtos, lotesValidade, compras, historicoPrecos, consumos, listaCompras }}
+                            onClose={() => setModalConfig(false)}
+                            mostrarToast={mostrarToast}
+                        />
+                    )}
+
+                    {modalProduto !== null && (
+                        <ModalProduto
+                            produto={typeof modalProduto === 'object' ? modalProduto : null}
+                            categories={INITIAL_CATEGORIES}
+                            onClose={() => setModalProduto(null)}
+                            onSalvo={() => { setModalProduto(null); mostrarToast('Produto salvo!'); }}
+                            mostrarToast={mostrarToast}
+                        />
+                    )}
+
+                    {modalCatalogo && (
+                        <ModalCatalogo produtos={produtos} onClose={() => setModalCatalogo(false)} onAdicionar={adicionarDoCatalogo} />
+                    )}
+
+                    {fotoAmpliada && (
+                        <div onClick={() => setFotoAmpliada(null)} className="fixed inset-0 bg-black/80 flex items-center justify-center z-[70] p-4 cursor-pointer">
+                            <div className="max-w-md w-full bg-white p-3 rounded-3xl shadow-2xl">
+                                <img src={fotoAmpliada.url} alt={fotoAmpliada.nome} className="w-full h-auto rounded-2xl object-contain max-h-[75vh]" />
+                                <p className="text-center text-xs font-bold text-slate-700 mt-2">{fotoAmpliada.nome}</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ---------- Navegação ----------
+        function NavBtn({ ativo, onClick, icon, label, badge }) {
+            return (
+                <button onClick={onClick} className={`flex flex-col items-center relative py-1.5 px-2.5 rounded-xl transition ${ativo ? 'text-violet-700 font-bold' : 'text-slate-400 hover:text-slate-600'}`}>
+                    <Icon name={icon} className="w-5 h-5 mb-0.5" />
+                    <span className="text-[10px] whitespace-nowrap">{label}</span>
+                    {badge > 0 && <span className="absolute top-0 right-1 bg-rose-500 text-white text-[9px] font-bold px-1.5 rounded-full">{badge}</span>}
+                </button>
+            );
+        }
+
+        function DesktopNavBtn({ ativo, onClick, icon, label, badge }) {
+            return (
+                <button onClick={onClick} className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap ${ativo ? 'bg-white text-violet-900 shadow-sm' : 'text-purple-100 hover:bg-white/10'}`}>
+                    <Icon name={icon} className="w-3.5 h-3.5" />
+                    <span>{label}</span>
+                    {badge > 0 && <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{badge}</span>}
+                </button>
+            );
+        }
+
+        // ---------- Dashboard ----------
+        function Dashboard({ saudacao, produtosComEstoque, itensAbaixoMinimo, metricasGasto, estimativaProximaSemana, ofertas, pendentesLista, setAbaAtiva, onNovaCompra, onNovoProduto, onConsumir, onFotoAmpliada }) {
+            const qtdAcabando = itensAbaixoMinimo.filter(p => p.stockTotal > 0).length;
+            const qtdAcabados = itensAbaixoMinimo.filter(p => p.stockTotal <= 0).length;
+            const lotesProximos = produtosComEstoque.flatMap(p => p.lotes).filter(l => {
+                const d = calcularDiasParaVencer(l.expiration_date);
+                return d !== null && d <= 7;
+            });
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-gradient-to-r from-violet-800 via-purple-800 to-indigo-900 text-white p-5 rounded-3xl shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center space-y-3 md:space-y-0">
+                        <div>
+                            <h2 className="font-bold text-base flex items-center space-x-2">
+                                <Icon name="sparkles" className="w-5 h-5 text-purple-300" />
+                                <span>{saudacao}! Resumo da casa</span>
+                            </h2>
+                            <p className="text-xs text-purple-100 max-w-xl mt-1 leading-relaxed">
+                                Você tem <strong className="text-amber-300">{qtdAcabando} acabando</strong>, <strong className="text-rose-300">{qtdAcabados} acabados</strong> e <strong className="text-violet-200">{lotesProximos.length} vencidos ou perto de vencer</strong>.
+                            </p>
+                        </div>
+                        <div className="flex space-x-2 w-full md:w-auto">
+                            <button onClick={onNovoProduto} className="flex-1 md:flex-initial bg-white/15 hover:bg-white/25 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5">
+                                <Icon name="camera" className="w-4 h-4" />
+                                <span>+ Produto</span>
+                            </button>
+                            <button onClick={onNovaCompra} className="flex-1 md:flex-initial bg-white text-violet-800 hover:bg-purple-50 px-4 py-2.5 rounded-xl text-xs font-bold shadow transition flex items-center justify-center space-x-1.5">
+                                <Icon name="plus-circle" className="w-4 h-4" />
+                                <span>Nova Compra</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                        <CardInd titulo="Em estoque" valor={produtosComEstoque.filter(p => p.stockTotal > 0).length} sub={`De ${produtosComEstoque.length} cadastrados`} cor="border-violet-300" icone="package" corIcone="text-violet-600" onClick={() => setAbaAtiva('estoque')} />
+                        <CardInd titulo="Acabando" valor={qtdAcabando} sub="Abaixo do mínimo" cor="border-amber-300" icone="alert-triangle" corIcone="text-amber-600" onClick={() => setAbaAtiva('estoque')} />
+                        <CardInd titulo="Acabados" valor={qtdAcabados} sub="Estoque zerado" cor="border-rose-300" icone="x-circle" corIcone="text-rose-600" onClick={() => setAbaAtiva('lista')} />
+                        <CardInd titulo="Validade" valor={lotesProximos.length} sub="Vencidos ou em até 7d" cor="border-purple-300" icone="clock" corIcone="text-purple-600" onClick={() => setAbaAtiva('estoque')} />
+                        <CardInd titulo="Gasto semana" valor={`R$ ${dinheiro(metricasGasto.semana)}`} sub="Últimos 7 dias" cor="border-indigo-300" icone="wallet" corIcone="text-indigo-600" onClick={() => setAbaAtiva('gastos')} />
+                        <CardInd titulo="Estimativa próx." valor={estimativaProximaSemana.itensBase > 0 ? `R$ ${dinheiro(estimativaProximaSemana.total)}` : 'Sem dados'} sub={estimativaProximaSemana.itensBase > 0 ? 'Reposição prevista' : 'Registre compras'} cor="border-emerald-300" icone="trending-up" corIcone="text-emerald-600" onClick={() => setAbaAtiva('gastos')} />
+                        <CardInd titulo="Ofertas" valor={ofertas.length} sub="Abaixo da média" cor="border-fuchsia-300" icone="tag" corIcone="text-fuchsia-600" onClick={() => setAbaAtiva('ofertas')} />
+                        <CardInd titulo="Lista de compras" valor={pendentesLista} sub="Itens pendentes" cor="border-violet-500" icone="list-checks" corIcone="text-violet-700" onClick={() => setAbaAtiva('lista')} />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-sm font-bold text-slate-800 flex items-center space-x-2">
+                                    <Icon name="alert-triangle" className="w-4 h-4 text-amber-500" />
+                                    <span>Atenção imediata</span>
+                                </h3>
+                                <button onClick={() => setAbaAtiva('estoque')} className="text-xs text-violet-700 font-bold hover:underline">Ver estoque</button>
+                            </div>
+                            <div className="space-y-2.5">
+                                {itensAbaixoMinimo.slice(0, 4).map(p => (
+                                    <div key={p.id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                                        <div className="flex items-center space-x-3 min-w-0">
+                                            {p.image_url ? (
+                                                <img onClick={() => onFotoAmpliada({ url: p.image_url, nome: p.name })} src={p.image_url} alt="" className="w-10 h-10 object-cover rounded-xl cursor-pointer border" />
+                                            ) : (
+                                                <div className="w-10 h-10 bg-violet-100 text-violet-700 rounded-xl flex items-center justify-center text-xs">📦</div>
+                                            )}
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-bold text-slate-800 truncate">{p.name}</p>
+                                                <p className="text-[10px] text-slate-500">Atual: <strong className={p.stockTotal <= 0 ? 'text-rose-600' : 'text-amber-600'}>{p.stockTotal} {p.unit}</strong> (mín: {p.minimum_stock})</p>
+                                            </div>
+                                        </div>
+                                        {p.stockTotal > 0 ? (
+                                            <button onClick={() => onConsumir(p)} className="bg-white border text-xs px-3 py-1.5 rounded-xl font-semibold text-slate-700 hover:bg-slate-50">Consumir</button>
+                                        ) : (
+                                            <span className="text-[10px] font-bold bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full whitespace-nowrap">🔴 Acabou</span>
+                                        )}
+                                    </div>
+                                ))}
+                                {itensAbaixoMinimo.length === 0 && <p className="text-xs text-slate-400 py-4 text-center">Nenhum item abaixo do mínimo! 🟢</p>}
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-sm font-bold text-slate-800 flex items-center space-x-2">
+                                    <Icon name="tag" className="w-4 h-4 text-fuchsia-600" />
+                                    <span>Melhores ofertas</span>
+                                </h3>
+                                <button onClick={() => setAbaAtiva('ofertas')} className="text-xs text-violet-700 font-bold hover:underline">Ver todas</button>
+                            </div>
+                            <div className="space-y-2.5">
+                                {ofertas.slice(0, 4).map(o => (
+                                    <div key={o.id} className="flex items-center justify-between p-3 rounded-2xl bg-fuchsia-50/50 border border-fuchsia-100">
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-800">{o.name}</p>
+                                            <p className="text-[10px] text-slate-500">{o.estabelecimento} — média: <span className="line-through">R$ {dinheiro(o.media)}</span></p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-xs font-bold text-violet-700">R$ {dinheiro(o.precoAtual)}</span>
+                                            <span className="block text-[10px] bg-fuchsia-100 text-fuchsia-800 font-bold px-1.5 py-0.5 rounded-full">-{o.desconto.toFixed(0)}%</span>
+                                        </div>
+                                    </div>
+                                ))}
+                                {ofertas.length === 0 && <p className="text-xs text-slate-400 py-4 text-center">Registre 2 ou mais compras do mesmo item para detectar quedas de preço.</p>}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function CardInd({ titulo, valor, sub, cor, icone, corIcone, onClick }) {
+            return (
+                <div onClick={onClick} className={`bg-white rounded-3xl p-4 shadow-sm border-2 ${cor} cursor-pointer hover:shadow-md transition flex flex-col justify-between`}>
+                    <div className="flex justify-between items-start mb-2">
+                        <span className="text-xs font-semibold text-slate-500">{titulo}</span>
+                        <div className={`p-2 rounded-xl bg-slate-50 ${corIcone}`}><Icon name={icone} className="w-4 h-4" /></div>
+                    </div>
+                    <div>
+                        <h4 className="text-base sm:text-lg font-bold text-slate-800">{valor}</h4>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{sub}</p>
+                    </div>
+                </div>
+            );
+        }
+
+        // ---------- Produtos ----------
+        function ProdutosView({ produtosComEstoque, onNovoProduto, onCatalogo, onEditarProduto, onExcluirProduto, onFotoAmpliada }) {
+            const [busca, setBusca] = useState('');
+            const [catFiltro, setCatFiltro] = useState('Todas');
+
+            const filtrados = produtosComEstoque.filter(p => {
+                const b = normalizar(busca);
+                const matchBusca = normalizar(p.name).includes(b) || normalizar(p.brand).includes(b);
+                return matchBusca && (catFiltro === 'Todas' || p.category === catFiltro);
+            });
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-800">📦 Produtos da casa</h2>
+                            <p className="text-xs text-slate-500">Cadastre produtos com foto ou use o catálogo de itens básicos.</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={onCatalogo} className="bg-violet-100 hover:bg-violet-200 text-violet-800 text-xs font-bold px-4 py-2.5 rounded-xl transition">📋 Catálogo básico</button>
+                            <button onClick={onNovoProduto} className="bg-violet-700 hover:bg-violet-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center space-x-1.5">
+                                <Icon name="camera" className="w-4 h-4" />
+                                <span>+ Produto</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="relative flex-1">
+                            <span className="text-slate-400 absolute left-3.5 top-3"><Icon name="search" className="w-4 h-4" /></span>
+                            <input type="text" placeholder="Buscar por nome ou marca..." value={busca} onChange={e => setBusca(e.target.value)} className="w-full bg-white border rounded-2xl pl-10 pr-4 py-2.5 text-xs shadow-sm" />
+                        </div>
+                        <select value={catFiltro} onChange={e => setCatFiltro(e.target.value)} className="bg-white border rounded-2xl px-4 py-2.5 text-xs font-medium shadow-sm">
+                            <option value="Todas">Todas as categorias</option>
+                            {INITIAL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filtrados.map(p => (
+                            <div key={p.id} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between">
+                                <div className="flex items-start space-x-4 mb-4">
+                                    {p.image_url ? (
+                                        <img onClick={() => onFotoAmpliada({ url: p.image_url, nome: p.name })} src={p.image_url} alt={p.name} className="w-16 h-16 object-cover rounded-2xl border cursor-pointer hover:opacity-90" />
+                                    ) : (
+                                        <div className="w-16 h-16 bg-violet-50 text-violet-600 rounded-2xl flex items-center justify-center border border-violet-100">
+                                            <Icon name="package" className="w-7 h-7" />
+                                        </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <span className="text-[10px] font-bold uppercase bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">{p.category}</span>
+                                        <h4 className="text-sm font-bold text-slate-800 mt-1 truncate">{p.name}</h4>
+                                        <p className="text-[11px] text-slate-500">{p.brand ? `${p.brand} • ` : ''}Mín: {p.minimum_stock} {p.unit}</p>
+                                    </div>
+                                </div>
+                                <div className="bg-slate-50 p-3 rounded-2xl flex justify-between items-center mb-3">
+                                    <span className="text-xs text-slate-500">Estoque atual:</span>
+                                    <span className={`text-sm font-bold ${p.stockTotal <= 0 ? 'text-rose-600' : p.stockTotal <= p.minimum_stock ? 'text-amber-600' : 'text-emerald-700'}`}>{p.stockTotal} {p.unit}</span>
+                                </div>
+                                <div className="flex space-x-2 pt-2 border-t">
+                                    <button onClick={() => onEditarProduto(p)} className="flex-1 text-xs text-violet-700 font-bold py-1.5 bg-violet-50 rounded-xl hover:bg-violet-100">Editar / Foto</button>
+                                    <button onClick={() => onExcluirProduto(p)} className="px-3 text-xs text-rose-600 font-bold py-1.5 bg-rose-50 rounded-xl hover:bg-rose-100">Excluir</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    {filtrados.length === 0 && <p className="text-xs text-slate-400 text-center py-8">Nenhum produto encontrado.</p>}
+                </div>
+            );
+        }
+
+        // ---------- Estoque & Validade ----------
+        function EstoqueView({ produtosComEstoque, onConsumir, onAjusteRapido, onAdicionarLote, onDescartarVencido, onFotoAmpliada }) {
+            const [filtro, setFiltro] = useState('todos');
+            const [modalLoteProd, setModalLoteProd] = useState(null);
+            const [qtdLote, setQtdLote] = useState(1);
+            const [validadeLote, setValidadeLote] = useState('');
+
+            const filtrados = produtosComEstoque.filter(p => {
+                if (filtro === 'acabando') return p.stockTotal > 0 && p.stockTotal <= p.minimum_stock;
+                if (filtro === 'acabou') return p.stockTotal <= 0;
+                if (filtro === 'vencendo') return p.lotes.some(l => { const d = calcularDiasParaVencer(l.expiration_date); return d !== null && d <= 7; });
+                return true;
+            });
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-800">📦 Estoque & validade</h2>
+                            <p className="text-xs text-slate-500">Use -1 / +1 para ajuste rápido ou registre o consumo. Sai primeiro o que vence antes.</p>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                            <button onClick={() => setFiltro('todos')} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${filtro === 'todos' ? 'bg-violet-700 text-white' : 'bg-slate-100 text-slate-600'}`}>Todos</button>
+                            <button onClick={() => setFiltro('acabando')} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${filtro === 'acabando' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-600'}`}>🟡 Acabando</button>
+                            <button onClick={() => setFiltro('acabou')} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${filtro === 'acabou' ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600'}`}>🔴 Acabou</button>
+                            <button onClick={() => setFiltro('vencendo')} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${filtro === 'vencendo' ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-600'}`}>⏰ Validade</button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {filtrados.map(p => {
+                            const statusBadge = p.stockTotal <= 0
+                                ? { text: '🔴 ACABOU', cls: 'bg-rose-100 text-rose-700' }
+                                : p.stockTotal <= p.minimum_stock
+                                ? { text: '🟡 ESTÁ ACABANDO', cls: 'bg-amber-100 text-amber-800' }
+                                : { text: '🟢 NORMAL', cls: 'bg-emerald-100 text-emerald-700' };
+
+                            return (
+                                <div key={p.id} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between">
+                                    <div>
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="flex items-center space-x-3">
+                                                {p.image_url && <img onClick={() => onFotoAmpliada({ url: p.image_url, nome: p.name })} src={p.image_url} alt="" className="w-11 h-11 object-cover rounded-xl border cursor-pointer" />}
+                                                <div>
+                                                    <h4 className="text-sm font-bold text-slate-800">{p.name}</h4>
+                                                    <span className={`inline-block mt-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${statusBadge.cls}`}>{statusBadge.text}</span>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-sm font-bold text-violet-800">{p.stockTotal} {p.unit}</span>
+                                                <p className="text-[10px] text-slate-400">Mín: {p.minimum_stock}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1.5 mb-4">
+                                            {p.lotes.map(l => {
+                                                const dias = calcularDiasParaVencer(l.expiration_date);
+                                                const vencido = dias !== null && dias < 0;
+                                                return (
+                                                    <div key={l.id} className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl text-xs">
+                                                        <div>
+                                                            <span className="font-semibold text-slate-700">{l.quantity} {p.unit}</span>
+                                                            <span className="text-[10px] text-slate-500 ml-2">Val: {l.expiration_date || 'sem data'}</span>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2">
+                                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${vencido ? 'bg-slate-800 text-white' : dias !== null && dias <= 6 ? 'bg-rose-100 text-rose-700' : dias !== null && dias <= 14 ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                                                {dias !== null ? (vencido ? `⚫ Vencido (${Math.abs(dias)}d)` : `${dias}d`) : '🟢 OK'}
+                                                            </span>
+                                                            {vencido && <button onClick={() => onDescartarVencido(l, p)} className="text-[10px] bg-rose-600 text-white px-2 py-0.5 rounded-lg font-bold">Descartar</button>}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                            {p.lotes.length === 0 && <p className="text-xs text-slate-400 py-1">Nenhum lote em estoque.</p>}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center space-x-2 pt-2 border-t">
+                                        <button onClick={() => onAjusteRapido(p, -1)} disabled={p.stockTotal < 1} className="bg-rose-50 hover:bg-rose-100 disabled:opacity-40 text-rose-700 px-3 py-2 rounded-xl text-xs font-bold">-1</button>
+                                        <button onClick={() => onAjusteRapido(p, 1)} className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-2 rounded-xl text-xs font-bold">+1</button>
+                                        <button onClick={() => onConsumir(p)} disabled={p.stockTotal <= 0} className="flex-1 bg-violet-700 hover:bg-violet-600 disabled:opacity-40 text-white py-2 rounded-xl text-xs font-bold">Consumir</button>
+                                        <button onClick={() => { setQtdLote(1); setValidadeLote(''); setModalLoteProd(p); }} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold">+ Lote</button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {filtrados.length === 0 && <p className="text-xs text-slate-400 text-center py-8">Nenhum item neste filtro.</p>}
+
+                    {modalLoteProd && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+                                <h3 className="text-base font-bold text-slate-800">+ Lote: {modalLoteProd.name}</h3>
+                                <div>
+                                    <label className="block text-xs font-semibold mb-1">Quantidade ({modalLoteProd.unit}):</label>
+                                    <input type="number" step="0.01" min="0.01" value={qtdLote} onChange={e => setQtdLote(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold mb-1">Data de validade (opcional):</label>
+                                    <input type="date" value={validadeLote} onChange={e => setValidadeLote(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs" />
+                                </div>
+                                <div className="flex justify-end space-x-2 pt-2">
+                                    <button onClick={() => setModalLoteProd(null)} className="px-4 py-2 text-xs text-slate-600">Cancelar</button>
+                                    <button onClick={() => {
+                                        if (!(Number(qtdLote) > 0)) return;
+                                        onAdicionarLote(modalLoteProd.id, qtdLote, validadeLote);
+                                        setModalLoteProd(null);
+                                    }} className="bg-violet-700 text-white px-4 py-2 rounded-xl text-xs font-bold">Salvar lote</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ---------- Compras ----------
+        function ComprasView({ compras, onNovaCompra, onVerDetalhes }) {
+            return (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-800">🛒 Histórico de compras</h2>
+                            <p className="text-xs text-slate-500">Notas e registros salvos.</p>
+                        </div>
+                        <button onClick={onNovaCompra} className="bg-violet-700 hover:bg-violet-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition">+ Nova compra</button>
+                    </div>
+                    <div className="space-y-3">
+                        {compras.map(c => (
+                            <div key={c.id} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 flex justify-between items-center gap-3">
+                                <div>
+                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                        <span className="text-xs font-bold text-violet-700 bg-violet-50 px-2.5 py-1 rounded-lg">{c.purchase_date}</span>
+                                        <span className="text-xs font-bold text-slate-700">{c.notes || 'Supermercado'}</span>
+                                    </div>
+                                    <p className="text-xs text-slate-500">{(c.purchase_items || []).length} produto(s)</p>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                    <span className="text-sm font-bold text-slate-800">R$ {dinheiro(c.total)}</span>
+                                    <button onClick={() => onVerDetalhes(c)} className="bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl text-xs font-bold">Ver itens</button>
+                                </div>
+                            </div>
+                        ))}
+                        {compras.length === 0 && <p className="text-xs text-slate-400 text-center py-8">Nenhuma compra registrada ainda.</p>}
+                    </div>
+                </div>
+            );
+        }
+
+        // ---------- Lista de compras ----------
+        function ListaComprasView({ listaCompras, itensAbaixoMinimo, onComprar, executar, mostrarToast }) {
+            const [novoItem, setNovoItem] = useState('');
+
+            const adicionarManual = (e) => {
+                e.preventDefault();
+                if (!novoItem.trim()) return;
+                executar(async () => {
+                    await CB.saveDoc('shopping_list', `item_${Date.now()}`, { product_name: novoItem.trim(), quantity: 1, purchased: false });
+                    setNovoItem('');
+                    mostrarToast('Item adicionado à lista!');
+                });
+            };
+
+            const adicionarTodosCriticos = () => executar(async () => {
+                let n = 0;
+                for (const p of itensAbaixoMinimo) {
+                    if (listaCompras.some(l => !l.purchased && l.product_id === p.id)) continue;
+                    const qtd = Math.max(Number(p.default_quantity || 1), Number(p.minimum_stock || 1) - p.stockTotal);
+                    await CB.saveDoc('shopping_list', `auto_${p.id}`, {
+                        product_id: p.id, product_name: p.name, unit: p.unit, quantity: qtd > 0 ? qtd : 1, purchased: false
+                    });
+                    n++;
+                }
+                mostrarToast(n > 0 ? `${n} item(ns) adicionado(s) à lista!` : 'Todos já estão na lista.');
+            });
+
+            const removerComprados = () => executar(async () => {
+                for (const l of listaCompras.filter(x => x.purchased)) await CB.removeDoc('shopping_list', l.id);
+                mostrarToast('Itens comprados removidos.');
+            });
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div>
+                            <h2 className="text-lg font-bold text-slate-800">📝 Lista de compras</h2>
+                            <p className="text-xs text-slate-500">Sugestões do estoque mínimo + itens manuais.</p>
+                        </div>
+                        <button onClick={onComprar} className="bg-violet-700 hover:bg-violet-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow">Registrar compra</button>
+                    </div>
+
+                    <form onSubmit={adicionarManual} className="flex gap-2">
+                        <input type="text" placeholder="Adicionar item manual (ex: pão de forma, sabão)..." value={novoItem} onChange={e => setNovoItem(e.target.value)} className="flex-1 bg-white border rounded-2xl px-4 py-3 text-xs shadow-sm" />
+                        <button type="submit" className="bg-violet-700 text-white px-5 py-3 rounded-2xl text-xs font-bold">Adicionar</button>
+                    </form>
+
+                    {itensAbaixoMinimo.length > 0 && (
+                        <div className="bg-white rounded-3xl p-5 shadow-sm border border-amber-200 space-y-3">
+                            <div className="flex flex-wrap justify-between items-center gap-2">
+                                <h3 className="text-sm font-bold text-slate-800">Recomendações do estoque ({itensAbaixoMinimo.length})</h3>
+                                <button onClick={adicionarTodosCriticos} className="text-xs bg-amber-100 text-amber-900 font-bold px-3 py-1.5 rounded-xl hover:bg-amber-200">Adicionar todos à lista</button>
+                            </div>
+                            {itensAbaixoMinimo.map(p => (
+                                <div key={p.id} className="flex justify-between items-center p-3 rounded-2xl bg-amber-50/50 border border-amber-100 text-xs">
+                                    <div>
+                                        <p className="font-bold text-slate-800">{p.name}</p>
+                                        <p className="text-[10px] text-slate-500">Restam: {p.stockTotal} {p.unit} (mín: {p.minimum_stock})</p>
+                                    </div>
+                                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${p.stockTotal <= 0 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'}`}>
+                                        {p.stockTotal <= 0 ? '🔴 Acabou' : '🟡 Acabando'}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 space-y-2.5">
+                        <div className="flex justify-between items-center mb-1">
+                            <h3 className="text-sm font-bold text-slate-800">Minha lista ({listaCompras.length})</h3>
+                            {listaCompras.some(l => l.purchased) && <button onClick={removerComprados} className="text-xs text-rose-600 font-bold hover:underline">Limpar comprados</button>}
+                        </div>
+                        {listaCompras.map(l => (
+                            <div key={l.id} className={`flex justify-between items-center p-3.5 rounded-2xl border ${l.purchased ? 'bg-slate-100 opacity-60' : 'bg-slate-50'}`}>
+                                <label className="flex items-center space-x-3 cursor-pointer flex-1">
+                                    <input type="checkbox" checked={Boolean(l.purchased)} onChange={() => executar(() => CB.saveDoc('shopping_list', l.id, { purchased: !l.purchased }))} className="w-4 h-4 accent-violet-700 rounded" />
+                                    <span className={`text-xs font-bold text-slate-800 ${l.purchased ? 'line-through' : ''}`}>
+                                        {l.product_name}{l.product_id ? ` — ${l.quantity} ${l.unit || ''}` : ''}
+                                    </span>
+                                </label>
+                                <button onClick={() => executar(() => CB.removeDoc('shopping_list', l.id))} className="text-rose-600 text-xs font-semibold hover:underline">Remover</button>
+                            </div>
+                        ))}
+                        {listaCompras.length === 0 && <p className="text-xs text-slate-400 py-4 text-center">Nenhum item na lista ainda.</p>}
+                    </div>
+                </div>
+            );
+        }
+
+        // ---------- Ofertas ----------
+        function OfertasView({ ofertas, onFotoAmpliada }) {
+            const [mercadoFiltro, setMercadoFiltro] = useState('Todos');
+            const filtradas = ofertas.filter(o => mercadoFiltro === 'Todos' || o.estabelecimento === mercadoFiltro);
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
+                        <h2 className="text-lg font-bold text-slate-800">🏷️ Principais ofertas detectadas</h2>
+                        <p className="text-xs text-slate-500">Produtos com o último preço abaixo da sua média histórica.</p>
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                            <button onClick={() => setMercadoFiltro('Todos')} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${mercadoFiltro === 'Todos' ? 'bg-violet-700 text-white' : 'bg-slate-100 text-slate-600'}`}>Todos</button>
+                            {INITIAL_ESTABLISHMENTS.filter(m => m !== 'Outro').map(m => (
+                                <button key={m} onClick={() => setMercadoFiltro(m)} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${mercadoFiltro === m ? 'bg-violet-700 text-white' : 'bg-slate-100 text-slate-600'}`}>{m.replace('Supermercado ', '')}</button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filtradas.map(o => {
+                            const tag = o.desconto >= 20 ? '🔥 GRANDE OPORTUNIDADE' : o.desconto >= 10 ? '✨ ÓTIMA OFERTA' : '👍 BOA OPORTUNIDADE';
+                            return (
+                                <div key={o.id} className="rounded-3xl p-5 shadow-sm border border-fuchsia-200 bg-gradient-to-br from-white to-fuchsia-50/40 flex flex-col justify-between">
+                                    <div>
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-[10px] font-bold bg-fuchsia-100 text-fuchsia-800 px-2.5 py-0.5 rounded-full">{tag}</span>
+                                            <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">-{o.desconto.toFixed(1)}%</span>
+                                        </div>
+                                        <div className="flex items-center space-x-3 my-2">
+                                            {o.image_url && <img onClick={() => onFotoAmpliada({ url: o.image_url, nome: o.name })} src={o.image_url} alt="" className="w-11 h-11 rounded-xl object-cover border cursor-pointer" />}
+                                            <div>
+                                                <h4 className="text-sm font-bold text-slate-800">{o.name}</h4>
+                                                <p className="text-[11px] font-semibold text-violet-700">{o.estabelecimento}</p>
+                                            </div>
+                                        </div>
+                                        <div className="bg-white p-3 rounded-2xl mt-3 border grid grid-cols-2 gap-2 text-center">
+                                            <div>
+                                                <p className="text-[10px] text-slate-400">Média histórica</p>
+                                                <p className="text-xs font-semibold line-through text-slate-500">R$ {dinheiro(o.media)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-400">Preço atual</p>
+                                                <p className="text-sm font-bold text-violet-800">R$ {dinheiro(o.precoAtual)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-emerald-700 font-bold text-center mt-3">Economia estimada: R$ {dinheiro(o.economia)}</p>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {filtradas.length === 0 && <p className="text-xs text-slate-400 text-center py-8">Nenhuma oferta encontrada. Registre pelo menos 2 preços do mesmo produto.</p>}
+                </div>
+            );
+        }
+
+        // ---------- Preços ----------
+        function PrecosView({ historicoPrecos }) {
+            const [busca, setBusca] = useState('');
+
+            const comparacao = useMemo(() => {
+                const map = {};
+                historicoPrecos.forEach(h => {
+                    const nome = h.product_name || 'Produto';
+                    if (!map[nome]) map[nome] = [];
+                    map[nome].push(h);
+                });
+                return Object.entries(map).map(([nome, lista]) => {
+                    const precos = lista.map(i => Number(i.price));
+                    const menor = Math.min(...precos);
+                    const maior = Math.max(...precos);
+                    const media = precos.reduce((a, b) => a + b, 0) / precos.length;
+                    const melhor = lista.find(i => Number(i.price) === menor);
+                    return { nome, lista, menor, maior, media, melhorMercado: (melhor && melhor.source) || 'N/A' };
+                }).filter(item => normalizar(item.nome).includes(normalizar(busca)));
+            }, [historicoPrecos, busca]);
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
+                        <h2 className="text-lg font-bold text-slate-800">📈 Comparação de preços entre mercados</h2>
+                        <p className="text-xs text-slate-500">Veja onde cada produto costuma ser mais barato, com base nas suas compras.</p>
+                    </div>
+                    <input type="text" placeholder="Pesquisar produto..." value={busca} onChange={e => setBusca(e.target.value)} className="w-full bg-white border rounded-2xl px-4 py-2.5 text-xs shadow-sm" />
+                    <div className="space-y-4">
+                        {comparacao.map(item => (
+                            <div key={item.nome} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
+                                    <div>
+                                        <h4 className="text-sm font-bold text-slate-800">{item.nome}</h4>
+                                        <p className="text-[11px] text-emerald-700 font-bold">🏆 Menor preço: R$ {dinheiro(item.menor)} ({item.melhorMercado})</p>
+                                    </div>
+                                    <div className="flex space-x-3 text-xs bg-slate-50 px-3 py-1.5 rounded-xl border">
+                                        <span>Média: <strong>R$ {dinheiro(item.media)}</strong></span>
+                                        <span>Maior: <strong>R$ {dinheiro(item.maior)}</strong></span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    {item.lista.slice(0, 5).map(reg => (
+                                        <div key={reg.id} className="flex justify-between items-center text-xs p-2 bg-slate-50 rounded-xl">
+                                            <span>{reg.date} — <strong>{reg.source}</strong></span>
+                                            <span className="font-bold text-violet-700">R$ {dinheiro(reg.price)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                        {comparacao.length === 0 && <p className="text-xs text-slate-400 text-center py-8">Nenhum registro de preço encontrado.</p>}
+                    </div>
+                </div>
+            );
+        }
+
+        // ---------- Gastos ----------
+        function GastosView({ compras, metricasGasto, estimativaProximaSemana }) {
+            const porMercado = useMemo(() => {
+                const map = {};
+                compras.forEach(c => {
+                    const m = c.notes || 'Outros';
+                    map[m] = (map[m] || 0) + Number(c.total || 0);
+                });
+                return Object.entries(map).sort((a, b) => b[1] - a[1]);
+            }, [compras]);
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
+                        <h2 className="text-lg font-bold text-slate-800">💰 Controle financeiro & previsão</h2>
+                        <p className="text-xs text-slate-500">Gastos registrados e estimativa de reposição.</p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200">
+                            <p className="text-xs text-slate-400">Últimos 7 dias</p>
+                            <h3 className="text-2xl font-bold text-violet-800 mt-1">R$ {dinheiro(metricasGasto.semana)}</h3>
+                        </div>
+                        <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200">
+                            <p className="text-xs text-slate-400">Mês atual</p>
+                            <h3 className="text-2xl font-bold text-slate-800 mt-1">R$ {dinheiro(metricasGasto.mes)}</h3>
+                        </div>
+                        <div className="rounded-3xl p-5 shadow-sm border border-emerald-200 bg-emerald-50/30">
+                            <p className="text-xs text-emerald-700 font-semibold">Previsão próxima semana</p>
+                            <h3 className="text-2xl font-bold text-emerald-800 mt-1">{estimativaProximaSemana.itensBase > 0 ? `R$ ${dinheiro(estimativaProximaSemana.total)}` : 'Sem dados'}</h3>
+                            <p className="text-[10px] text-slate-500 mt-1">Baseada nos itens abaixo do mínimo que já têm preço registrado</p>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200">
+                        <h3 className="text-sm font-bold text-slate-800 mb-3">Gastos por supermercado</h3>
+                        <div className="space-y-2">
+                            {porMercado.map(([mercado, total]) => (
+                                <div key={mercado} className="flex justify-between items-center p-3 bg-slate-50 rounded-2xl text-xs">
+                                    <span className="font-bold text-slate-700">{mercado}</span>
+                                    <span className="font-bold text-violet-700">R$ {dinheiro(total)}</span>
+                                </div>
+                            ))}
+                            {porMercado.length === 0 && <p className="text-xs text-slate-400">Nenhuma compra registrada.</p>}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ---------- Relatórios ----------
+        function RelatoriosView({ produtosComEstoque, consumos }) {
+            const topConsumidos = useMemo(() => {
+                const map = {};
+                consumos.forEach(c => {
+                    const n = c.product_name || 'Produto';
+                    map[n] = (map[n] || 0) + Number(c.quantity || 0);
+                });
+                return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            }, [consumos]);
+
+            const normal = produtosComEstoque.filter(p => p.stockTotal > p.minimum_stock).length;
+            const acabando = produtosComEstoque.filter(p => p.stockTotal > 0 && p.stockTotal <= p.minimum_stock).length;
+            const acabados = produtosComEstoque.filter(p => p.stockTotal <= 0).length;
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
+                        <h2 className="text-lg font-bold text-slate-800">📊 Relatórios e consumo</h2>
+                        <p className="text-xs text-slate-500">Movimentações e saúde do estoque.</p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center"><p className="text-xl font-bold text-emerald-700">{normal}</p><p className="text-[10px] text-emerald-800">Normais</p></div>
+                        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center"><p className="text-xl font-bold text-amber-700">{acabando}</p><p className="text-[10px] text-amber-800">Acabando</p></div>
+                        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 text-center"><p className="text-xl font-bold text-rose-700">{acabados}</p><p className="text-[10px] text-rose-800">Acabados</p></div>
+                    </div>
+                    <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200">
+                        <h3 className="text-sm font-bold text-slate-800 mb-3">Mais consumidos</h3>
+                        <div className="space-y-2">
+                            {topConsumidos.map(([nome, qtd], i) => (
+                                <div key={nome} className="flex justify-between items-center p-3 bg-slate-50 rounded-2xl text-xs">
+                                    <span className="font-bold text-slate-700">{i + 1}. {nome}</span>
+                                    <span className="font-bold text-violet-700">{Number(qtd.toFixed(2))}</span>
+                                </div>
+                            ))}
+                            {topConsumidos.length === 0 && <p className="text-xs text-slate-400 py-2 text-center">Sem consumo registrado.</p>}
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200">
+                        <h3 className="text-sm font-bold text-slate-800 mb-3">Últimas baixas registradas</h3>
+                        <div className="space-y-2">
+                            {consumos.slice(0, 15).map(c => (
+                                <div key={c.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-2xl text-xs">
+                                    <div>
+                                        <p className="font-bold text-slate-800">{c.product_name || 'Produto'}</p>
+                                        <p className="text-[10px] text-slate-500">{c.notes} • {c.consumed_at ? new Date(c.consumed_at).toLocaleDateString('pt-BR') : ''}</p>
+                                    </div>
+                                    <span className="font-bold text-rose-600">-{c.quantity}</span>
+                                </div>
+                            ))}
+                            {consumos.length === 0 && <p className="text-xs text-slate-400 py-4 text-center">Nenhum consumo registrado ainda.</p>}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ---------- Modal: catálogo de itens básicos ----------
+        function ModalCatalogo({ produtos, onClose, onAdicionar }) {
+            const [busca, setBusca] = useState('');
+            const [selecionados, setSelecionados] = useState({});
+            const [jaTenho, setJaTenho] = useState(false);
+            const [salvando, setSalvando] = useState(false);
+
+            const itens = useMemo(() => {
+                const lista = [];
+                Object.entries(CATALOGO).forEach(([categoria, arr]) => {
+                    arr.forEach(([nome, unidade, qtd, min]) => {
+                        lista.push({ id: `cat_${slug(nome)}`, nome, categoria, unidade, qtd, min });
+                    });
+                });
+                return lista;
+            }, []);
+
+            const nomesExistentes = useMemo(() => new Set(produtos.map(p => normalizar(p.name))), [produtos]);
+            const idsExistentes = useMemo(() => new Set(produtos.map(p => p.id)), [produtos]);
+            const jaCadastrado = (it) => idsExistentes.has(it.id) || nomesExistentes.has(normalizar(it.nome));
+
+            const termo = normalizar(busca);
+            const visiveis = itens.filter(it => !termo || normalizar(it.nome).includes(termo) || normalizar(it.categoria).includes(termo));
+            const categorias = [...new Set(visiveis.map(i => i.categoria))];
+            const totalSel = Object.keys(selecionados).filter(k => selecionados[k]).length;
+
+            const alternar = (it) => setSelecionados(prev => ({ ...prev, [it.id]: !prev[it.id] }));
+            const marcarCategoria = (cat) => {
+                const doGrupo = visiveis.filter(i => i.categoria === cat && !jaCadastrado(i));
+                const todosMarcados = doGrupo.every(i => selecionados[i.id]);
+                setSelecionados(prev => {
+                    const novo = { ...prev };
+                    doGrupo.forEach(i => { novo[i.id] = !todosMarcados; });
+                    return novo;
+                });
+            };
+
+            const confirmar = async () => {
+                const escolhidos = itens.filter(i => selecionados[i.id] && !jaCadastrado(i));
+                if (escolhidos.length === 0) return;
+                setSalvando(true);
+                await onAdicionar(escolhidos, jaTenho);
+                setSalvando(false);
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[55] p-4">
+                    <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl">
+                        <div className="p-5 border-b space-y-3">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-base font-bold text-slate-800">📋 Catálogo de itens básicos</h3>
+                                <button onClick={onClose} className="text-slate-400 font-bold px-2">✕</button>
+                            </div>
+                            <input type="text" placeholder="Buscar item (ex: sabonete, miojo, bolacha)..." value={busca} onChange={e => setBusca(e.target.value)} className="w-full border rounded-2xl px-4 py-2.5 text-xs" />
+                            <label className="flex items-center space-x-2 text-xs text-slate-600 cursor-pointer">
+                                <input type="checkbox" checked={jaTenho} onChange={e => setJaTenho(e.target.checked)} className="accent-violet-700" />
+                                <span>Já tenho esses itens em casa (começa com a quantidade padrão no estoque)</span>
+                            </label>
+                            <p className="text-[10px] text-slate-400">Sem essa opção, os itens entram com estoque zero e aparecem na lista de compras.</p>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                            {categorias.map(cat => (
+                                <div key={cat}>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h4 className="text-xs font-bold uppercase tracking-wide text-violet-800">{cat}</h4>
+                                        <button onClick={() => marcarCategoria(cat)} className="text-[11px] text-violet-700 font-bold hover:underline">Marcar / desmarcar todos</button>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                                        {visiveis.filter(i => i.categoria === cat).map(it => {
+                                            const ja = jaCadastrado(it);
+                                            return (
+                                                <label key={it.id} className={`flex items-center space-x-2 p-2.5 rounded-xl border text-xs ${ja ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : selecionados[it.id] ? 'bg-violet-50 border-violet-300 cursor-pointer' : 'bg-white border-slate-200 cursor-pointer hover:bg-slate-50'}`}>
+                                                    <input type="checkbox" disabled={ja} checked={ja || !!selecionados[it.id]} onChange={() => alternar(it)} className="accent-violet-700" />
+                                                    <span className="flex-1">{it.nome}</span>
+                                                    <span className="text-[10px] text-slate-400">{ja ? 'já cadastrado' : it.unidade}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                            {categorias.length === 0 && <p className="text-xs text-slate-400 text-center py-8">Nenhum item encontrado. Você pode cadastrar um produto novo manualmente.</p>}
+                        </div>
+
+                        <div className="p-5 border-t flex justify-between items-center gap-3">
+                            <span className="text-xs text-slate-500">{totalSel} selecionado(s)</span>
+                            <div className="flex space-x-2">
+                                <button onClick={onClose} className="px-4 py-2 text-xs text-slate-600">Cancelar</button>
+                                <button onClick={confirmar} disabled={totalSel === 0 || salvando} className="bg-violet-700 disabled:opacity-40 text-white px-5 py-2 rounded-xl text-xs font-bold">
+                                    {salvando ? 'Adicionando...' : `Adicionar ${totalSel} item(ns)`}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ---------- Modal: produto (com foto) ----------
+        function ModalProduto({ produto, categories, onClose, onSalvo, mostrarToast }) {
+            const novo = !produto;
+            const [name, setName] = useState(produto ? produto.name : '');
+            const [category, setCategory] = useState(produto ? produto.category : categories[0]);
+            const [brand, setBrand] = useState(produto ? (produto.brand || '') : '');
+            const [unit, setUnit] = useState(produto ? produto.unit : 'unidade');
+            const [defaultQty, setDefaultQty] = useState(produto ? produto.default_quantity : 1);
+            const [minStock, setMinStock] = useState(produto ? produto.minimum_stock : 1);
+            const [estoqueInicial, setEstoqueInicial] = useState(0);
+            const [validadeInicial, setValidadeInicial] = useState('');
+            const [notes, setNotes] = useState(produto ? (produto.notes || '') : '');
+            const [imageUrl, setImageUrl] = useState(produto ? (produto.image_url || '') : '');
+            const [processandoFoto, setProcessandoFoto] = useState(false);
+            const [salvando, setSalvando] = useState(false);
+
+            const handleFoto = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setProcessandoFoto(true);
+                try {
+                    setImageUrl(await comprimirImagem(file));
+                } catch (err) {
+                    mostrarToast('Erro ao processar a imagem.', 'erro');
+                } finally {
+                    setProcessandoFoto(false);
+                    e.target.value = '';
+                }
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (!name.trim()) return;
+                setSalvando(true);
+                try {
+                    const id = produto ? produto.id : `prod_${Date.now()}`;
+                    await CB.saveDoc('products', id, {
+                        name: name.trim(), category, brand: brand.trim(), unit: unit.trim() || 'unidade',
+                        default_quantity: Number(defaultQty) || 1, minimum_stock: Number(minStock) || 0,
+                        image_url: imageUrl, notes: notes.trim(), is_demo: false
+                    });
+                    if (novo && Number(estoqueInicial) > 0) {
+                        await CB.saveDoc('product_expiration', `lote_${id}_ini`, {
+                            product_id: id, quantity: Number(estoqueInicial), expiration_date: validadeInicial || '', is_demo: false
+                        });
+                    }
+                    onSalvo();
+                } catch (err) {
+                    console.error(err);
+                    mostrarToast('Erro ao salvar produto.', 'erro');
+                } finally {
+                    setSalvando(false);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[56] p-4 overflow-y-auto">
+                    <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl my-8 space-y-4">
+                        <h3 className="text-base font-bold text-slate-800">{produto ? 'Editar produto' : '+ Cadastrar produto'}</h3>
+                        <form onSubmit={handleSubmit} className="space-y-3">
+                            <div className="flex items-center space-x-4 bg-slate-50 p-3 rounded-2xl border border-dashed border-violet-300">
+                                <div className="w-20 h-20 bg-white rounded-2xl flex flex-col items-center justify-center overflow-hidden border shadow-sm shrink-0">
+                                    {imageUrl ? <img src={imageUrl} alt="Prévia" className="w-full h-full object-cover" /> : <Icon name="camera" className="w-7 h-7 text-violet-400" />}
+                                </div>
+                                <div className="flex-1 text-xs space-y-1.5">
+                                    <p className="font-bold text-slate-800">Foto do produto (opcional)</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <label className="bg-violet-700 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold cursor-pointer">
+                                            📷 Tirar foto
+                                            <input type="file" accept="image/*" capture="environment" onChange={handleFoto} className="hidden" />
+                                        </label>
+                                        <label className="bg-white border border-violet-300 text-violet-800 px-3 py-1.5 rounded-xl text-[11px] font-bold cursor-pointer">
+                                            🖼️ Galeria
+                                            <input type="file" accept="image/*" onChange={handleFoto} className="hidden" />
+                                        </label>
+                                        {imageUrl && <button type="button" onClick={() => setImageUrl('')} className="text-[11px] text-rose-600 font-bold hover:underline">Remover</button>}
+                                    </div>
+                                </div>
+                            </div>
+                            {processandoFoto && <p className="text-xs text-violet-700 font-semibold animate-pulse">Otimizando imagem...</p>}
+
+                            <div>
+                                <label className="block text-xs font-semibold mb-1">Nome do produto *</label>
+                                <input type="text" required placeholder="Ex: Arroz 5kg, Leite integral 1L" value={name} onChange={e => setName(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-semibold mb-1">Categoria</label>
+                                    <select value={category} onChange={e => setCategory(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs">
+                                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold mb-1">Marca (opcional)</label>
+                                    <input type="text" placeholder="Ex: Tio João" value={brand} onChange={e => setBrand(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs" />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label className="block text-xs font-semibold mb-1">Unidade</label>
+                                    <input type="text" placeholder="un, kg, L" value={unit} onChange={e => setUnit(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold mb-1">Qtd padrão</label>
+                                    <input type="number" step="0.01" min="0.01" value={defaultQty} onChange={e => setDefaultQty(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold mb-1">Estoque mín.</label>
+                                    <input type="number" step="0.01" min="0" value={minStock} onChange={e => setMinStock(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs" />
+                                </div>
+                            </div>
+                            {novo && (
+                                <div className="grid grid-cols-2 gap-3 bg-violet-50/60 p-3 rounded-2xl">
+                                    <div>
+                                        <label className="block text-xs font-semibold mb-1">Quanto tenho agora</label>
+                                        <input type="number" step="0.01" min="0" value={estoqueInicial} onChange={e => setEstoqueInicial(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs bg-white" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold mb-1">Validade (opcional)</label>
+                                        <input type="date" value={validadeInicial} onChange={e => setValidadeInicial(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs bg-white" />
+                                    </div>
+                                </div>
+                            )}
+                            <div>
+                                <label className="block text-xs font-semibold mb-1">Observações (opcional)</label>
+                                <input type="text" value={notes} onChange={e => setNotes(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs" />
+                            </div>
+                            <div className="flex justify-end space-x-2 pt-3">
+                                <button type="button" onClick={onClose} className="px-4 py-2 text-xs text-slate-600">Cancelar</button>
+                                <button type="submit" disabled={salvando || processandoFoto} className="bg-violet-700 text-white px-5 py-2 rounded-xl text-xs font-bold disabled:opacity-50">{salvando ? 'Salvando...' : 'Salvar produto'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        // ---------- Modal: compra ----------
+        function ModalCompra({ produtos, historicoPrecos, listaCompras, establishments, onClose, onSalvo, onNovoProduto, onCatalogo, mostrarToast }) {
+            const itemVazio = () => ({ productId: '', quantity: 1, unitPrice: 0, expirationDate: '' });
+            const [establishment, setEstablishment] = useState(establishments[0]);
+            const [purchaseDate, setPurchaseDate] = useState(hojeISO());
+            const [itens, setItens] = useState([itemVazio()]);
+            const [salvando, setSalvando] = useState(false);
+
+            const totalNota = itens.reduce((acc, i) => acc + (Number(i.quantity || 0) * Number(i.unitPrice || 0)), 0);
+
+            const atualizar = (idx, campos) => setItens(prev => prev.map((it, i) => i === idx ? { ...it, ...campos } : it));
+
+            const escolherProduto = (idx, productId) => {
+                const prod = produtos.find(p => p.id === productId);
+                const ultimo = historicoPrecos.find(h => h.product_id === productId && Number(h.price) > 0);
+                atualizar(idx, {
+                    productId,
+                    quantity: prod ? Number(prod.default_quantity || 1) : 1,
+                    unitPrice: ultimo ? Number(ultimo.price) : 0
+                });
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                const validos = itens.filter(i => i.productId && Number(i.quantity) > 0);
+                if (validos.length === 0) { mostrarToast('Escolha pelo menos um produto.', 'erro'); return; }
+
+                setSalvando(true);
+                try {
+                    const compraId = `comp_${Date.now()}`;
+                    const itensFormatados = validos.map(item => {
+                        const prodObj = produtos.find(p => p.id === item.productId);
+                        return {
+                            product_id: item.productId,
+                            product_name: prodObj ? prodObj.name : 'Produto',
+                            quantity: Number(item.quantity),
+                            unit_price: Number(item.unitPrice) || 0,
+                            total_price: Number((Number(item.quantity) * (Number(item.unitPrice) || 0)).toFixed(2)),
+                            expiration_date: item.expirationDate || ''
+                        };
+                    });
+                    const total = Number(itensFormatados.reduce((a, i) => a + i.total_price, 0).toFixed(2));
+
+                    await CB.saveDoc('purchases', compraId, {
+                        purchase_date: purchaseDate, total, notes: establishment, purchase_items: itensFormatados, is_demo: false
+                    });
+
+                    for (let idx = 0; idx < itensFormatados.length; idx++) {
+                        const it = itensFormatados[idx];
+                        await CB.saveDoc('product_expiration', `lote_${compraId}_${idx}`, {
+                            product_id: it.product_id, quantity: it.quantity, expiration_date: it.expiration_date,
+                            purchase_id: compraId, is_demo: false
+                        });
+                        if (it.unit_price > 0) {
+                            await CB.saveDoc('price_history', `ph_${compraId}_${idx}`, {
+                                product_id: it.product_id, product_name: it.product_name, price: it.unit_price,
+                                date: purchaseDate, source: establishment, purchase_id: compraId, is_demo: false
+                            });
+                        }
+                    }
+
+                    // Marca como comprados os itens da lista ligados a estes produtos
+                    const idsComprados = new Set(itensFormatados.map(i => i.product_id));
+                    for (const l of listaCompras.filter(x => !x.purchased && x.product_id && idsComprados.has(x.product_id))) {
+                        await CB.saveDoc('shopping_list', l.id, { purchased: true });
+                    }
+
+                    onSalvo();
+                } catch (err) {
+                    console.error(err);
+                    mostrarToast('Erro ao salvar a compra.', 'erro');
+                } finally {
+                    setSalvando(false);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                    <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl my-8 space-y-4">
+                        <div className="flex flex-wrap justify-between items-center gap-2">
+                            <h3 className="text-base font-bold text-slate-800">🛒 Registrar nova compra</h3>
+                            <div className="flex gap-2">
+                                <button type="button" onClick={onCatalogo} className="text-xs bg-violet-100 text-violet-800 font-bold px-3 py-1.5 rounded-xl">📋 Catálogo</button>
+                                <button type="button" onClick={onNovoProduto} className="text-xs bg-violet-100 text-violet-800 font-bold px-3 py-1.5 rounded-xl">+ Produto</button>
+                            </div>
+                        </div>
+
+                        {produtos.length === 0 ? (
+                            <div className="p-6 text-center space-y-3 bg-slate-50 rounded-2xl">
+                                <p className="text-xs text-slate-600">Cadastre pelo menos um produto antes de lançar uma compra.</p>
+                                <div className="flex justify-center gap-2">
+                                    <button type="button" onClick={onCatalogo} className="bg-violet-700 text-white px-4 py-2 rounded-xl text-xs font-bold">📋 Usar catálogo básico</button>
+                                    <button type="button" onClick={onNovoProduto} className="bg-white border border-violet-300 text-violet-800 px-4 py-2 rounded-xl text-xs font-bold">+ Cadastrar produto</button>
+                                </div>
+                                <button type="button" onClick={onClose} className="text-xs text-slate-500">Fechar</button>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-semibold mb-1">Supermercado / local</label>
+                                        <select value={establishment} onChange={e => setEstablishment(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs">
+                                            {establishments.map(est => <option key={est} value={est}>{est}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold mb-1">Data da compra</label>
+                                        <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs" required />
+                                    </div>
+                                </div>
+
+                                <div className="border-t pt-3">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h4 className="text-xs font-bold text-slate-700">Itens da compra</h4>
+                                        <span className="text-sm font-bold text-violet-800">Total: R$ {dinheiro(totalNota)}</span>
+                                    </div>
+                                    <div className="space-y-2.5 max-h-64 overflow-y-auto">
+                                        {itens.map((item, idx) => (
+                                            <div key={idx} className="flex flex-wrap sm:flex-nowrap gap-2 items-center bg-slate-50 p-3 rounded-2xl">
+                                                <select value={item.productId} onChange={e => escolherProduto(idx, e.target.value)} className="w-full sm:flex-1 border rounded-xl px-2.5 py-2 text-xs bg-white">
+                                                    <option value="">Selecione o produto...</option>
+                                                    {produtos.map(p => <option key={p.id} value={p.id}>{p.name} ({p.unit})</option>)}
+                                                </select>
+                                                <input type="number" step="0.01" min="0.01" placeholder="Qtd" value={item.quantity} onChange={e => atualizar(idx, { quantity: e.target.value })} className="w-20 border rounded-xl px-2 py-2 text-xs bg-white" title="Quantidade" />
+                                                <input type="number" step="0.01" min="0" placeholder="R$ un." value={item.unitPrice} onChange={e => atualizar(idx, { unitPrice: e.target.value })} className="w-24 border rounded-xl px-2 py-2 text-xs bg-white" title="Preço unitário" />
+                                                <input type="date" title="Validade (opcional)" value={item.expirationDate} onChange={e => atualizar(idx, { expirationDate: e.target.value })} className="w-32 border rounded-xl px-2 py-2 text-xs bg-white" />
+                                                {itens.length > 1 && <button type="button" onClick={() => setItens(itens.filter((_, i) => i !== idx))} className="text-rose-500 font-bold px-2">✕</button>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button type="button" onClick={() => setItens([...itens, itemVazio()])} className="mt-2.5 text-xs text-violet-700 font-bold hover:underline">+ Adicionar outro item</button>
+                                </div>
+
+                                <div className="flex justify-end space-x-2 pt-3 border-t">
+                                    <button type="button" onClick={onClose} className="px-4 py-2 text-xs text-slate-600">Cancelar</button>
+                                    <button type="submit" disabled={salvando} className="bg-violet-700 text-white px-5 py-2 rounded-xl text-xs font-bold disabled:opacity-50">{salvando ? 'Salvando...' : 'Confirmar compra'}</button>
+                                </div>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // ---------- Modal: consumo ----------
+        function ModalConsumo({ produto, baixarDosLotes, onClose, onSalvo, mostrarToast }) {
+            const [qtdConsumir, setQtdConsumir] = useState(1);
+            const [salvando, setSalvando] = useState(false);
+
+            const handleConsumir = async (e) => {
+                e.preventDefault();
+                const qtd = Number(qtdConsumir);
+                if (!(qtd > 0) || qtd > produto.stockTotal) {
+                    mostrarToast(`Quantidade inválida. Disponível: ${produto.stockTotal} ${produto.unit}`, 'erro');
+                    return;
+                }
+                setSalvando(true);
+                try {
+                    await baixarDosLotes(produto, qtd);
+                    await CB.saveDoc('consumption', `cons_${Date.now()}`, {
+                        product_id: produto.id, product_name: produto.name, quantity: qtd,
+                        consumed_at: new Date().toISOString(), notes: 'Consumo registrado'
+                    });
+                    onSalvo();
+                } catch (err) {
+                    console.error(err);
+                    mostrarToast('Erro ao registrar consumo.', 'erro');
+                } finally {
+                    setSalvando(false);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+                        <h3 className="text-base font-bold text-slate-800">Registrar consumo</h3>
+                        <p className="text-xs text-slate-500">{produto.name} (disponível: <strong>{produto.stockTotal} {produto.unit}</strong>)</p>
+                        <form onSubmit={handleConsumir} className="space-y-3">
+                            <div>
+                                <label className="block text-xs font-semibold mb-1">Quantidade consumida ({produto.unit}):</label>
+                                <input type="number" step="0.01" min="0.01" max={produto.stockTotal} value={qtdConsumir} onChange={e => setQtdConsumir(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-sm" required />
+                            </div>
+                            <div className="flex justify-end space-x-2 pt-2">
+                                <button type="button" onClick={onClose} className="px-4 py-2 text-xs text-slate-600">Cancelar</button>
+                                <button type="submit" disabled={salvando} className="bg-violet-700 text-white px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-50">Dar baixa</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        // ---------- Modal: detalhe da compra ----------
+        function ModalDetalheCompra({ compra, onClose, onExcluir }) {
+            return (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-base font-bold text-slate-800">{compra.notes || 'Supermercado'}</h3>
+                            <span className="text-xs font-bold text-violet-700 bg-violet-50 px-3 py-1 rounded-xl">R$ {dinheiro(compra.total)}</span>
+                        </div>
+                        <p className="text-xs text-slate-500">Data: {compra.purchase_date}</p>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {(compra.purchase_items || []).map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl text-xs">
+                                    <div>
+                                        <p className="font-semibold">{item.product_name || 'Produto'}</p>
+                                        <p className="text-[10px] text-slate-500">{item.quantity} x R$ {dinheiro(item.unit_price)}</p>
+                                    </div>
+                                    <span className="font-bold">R$ {dinheiro(item.total_price)}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex space-x-2 pt-2">
+                            <button onClick={onExcluir} className="flex-1 bg-rose-50 text-rose-700 py-2 rounded-xl text-xs font-bold">Excluir compra</button>
+                            <button onClick={onClose} className="flex-1 bg-slate-100 py-2 rounded-xl text-xs font-bold">Fechar</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ---------- Modal: busca global ----------
+        function ModalBuscaGlobal({ produtosComEstoque, historicoPrecos, onClose }) {
+            const [termo, setTermo] = useState('');
+            const t = normalizar(termo);
+            const prodRes = t ? produtosComEstoque.filter(p => normalizar(p.name).includes(t)) : [];
+            const precosRes = t ? historicoPrecos.filter(h => normalizar(h.product_name).includes(t)) : [];
+
+            return (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-base font-bold text-slate-800">🔍 Pesquisa global</h3>
+                            <button onClick={onClose} className="text-slate-400 font-bold px-2">✕</button>
+                        </div>
+                        <input type="text" placeholder="Digite o nome do produto (ex: café, arroz)..." value={termo} onChange={e => setTermo(e.target.value)} className="w-full border rounded-2xl px-4 py-2.5 text-xs shadow-sm" autoFocus />
+                        <div className="space-y-3 max-h-72 overflow-y-auto">
+                            {prodRes.map(p => (
+                                <div key={p.id} className="p-3 bg-violet-50/60 border border-violet-100 rounded-xl text-xs flex justify-between gap-2">
+                                    <span className="font-bold text-slate-800">📦 {p.name}</span>
+                                    <span className="font-bold text-violet-700 whitespace-nowrap">Estoque: {p.stockTotal} {p.unit}</span>
+                                </div>
+                            ))}
+                            {precosRes.slice(0, 8).map(h => (
+                                <div key={h.id} className="p-3 bg-slate-50 rounded-xl text-xs flex justify-between gap-2">
+                                    <span>🏷️ {h.product_name} ({h.source})</span>
+                                    <span className="font-bold whitespace-nowrap">R$ {dinheiro(h.price)} ({h.date})</span>
+                                </div>
+                            ))}
+                            {t && prodRes.length === 0 && precosRes.length === 0 && <p className="text-xs text-slate-400 text-center py-4">Nenhum resultado.</p>}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ---------- Modal: configurações e backup ----------
+        function ModalConfig({ user, modoLocal, dados, onClose, mostrarToast }) {
+            const exportar = () => {
+                const blob = new Blob([JSON.stringify({ ...dados, versao: 'central-compras-v2', exportadoEm: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `backup-central-compras-${hojeISO()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                mostrarToast('Backup exportado!');
+            };
+
+            const importar = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    try {
+                        const parsed = JSON.parse(ev.target.result);
+                        if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.produtos)) throw new Error('inválido');
+                        if (!confirm('Restaurar os dados deste backup? Itens com o mesmo código serão sobrescritos.')) return;
+                        for (const [chave, colecao] of COLECOES_BACKUP) {
+                            for (const item of (parsed[chave] || [])) {
+                                if (item && item.id) await CB.saveDoc(colecao, item.id, item);
+                            }
+                        }
+                        mostrarToast('Backup restaurado!');
+                        onClose();
+                    } catch (err) {
+                        console.error(err);
+                        mostrarToast('Arquivo de backup inválido.', 'erro');
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+                        <h3 className="text-base font-bold text-slate-800">⚙️ Configurações e backup</h3>
+                        {modoLocal ? (
+                            <div className="bg-amber-50 border border-amber-200 p-3 rounded-2xl text-xs text-amber-800">
+                                <strong>Modo local:</strong> os dados ficam apenas neste navegador. Exporte backups com frequência ou configure o Firebase para sincronizar.
+                            </div>
+                        ) : (
+                            <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-xs text-emerald-800">
+                                <strong>Sincronização ativa</strong>{user.email ? ` (${user.email})` : ''}: produtos, fotos, compras e lotes ficam salvos na nuvem e aparecem em todos os aparelhos autorizados.
+                            </div>
+                        )}
+                        <div className="space-y-2 pt-2">
+                            <button onClick={exportar} className="w-full bg-violet-700 hover:bg-violet-600 text-white py-2.5 rounded-xl text-xs font-bold">Exportar backup completo (.json)</button>
+                            <label className="block w-full text-center bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-xs font-bold cursor-pointer">
+                                Restaurar backup (.json)
+                                <input type="file" accept=".json" onChange={importar} className="hidden" />
+                            </label>
+                        </div>
+                        <button onClick={onClose} className="w-full text-xs text-slate-500 pt-2">Fechar</button>
+                    </div>
+                </div>
+            );
+        }
+
+        // ---------- Monitor de ofertas dos sites dos supermercados ----------
+        // Fluxo: um coletor (Google Apps Script) grava as ofertas numa planilha publicada como CSV.
+        // Este módulo lê o CSV ao abrir e a cada 30 min, grava os preços dos SEUS produtos no
+        // histórico de preços (alimentando a aba Ofertas) e lista tudo que foi encontrado.
+        const MONITOR_INTERVALO_MS = 30 * 60 * 1000;
+
+        function parseCsv(texto) {
+            const t = (texto || '').replace(/^﻿/, '');
+            const primeira = t.split(/\r?\n/)[0] || '';
+            const sep = (primeira.match(/;/g) || []).length > (primeira.match(/,/g) || []).length ? ';' : ',';
+            const linhas = [];
+            let campo = '', linha = [], aspas = false;
+            for (let i = 0; i < t.length; i++) {
+                const c = t[i];
+                if (aspas) {
+                    if (c === '"') { if (t[i + 1] === '"') { campo += '"'; i++; } else aspas = false; }
+                    else campo += c;
+                } else if (c === '"') {
+                    aspas = true;
+                } else if (c === sep) {
+                    linha.push(campo); campo = '';
+                } else if (c === '\n' || c === '\r') {
+                    if (c === '\r' && t[i + 1] === '\n') i++;
+                    linha.push(campo); campo = '';
+                    if (linha.some(x => x.trim() !== '')) linhas.push(linha);
+                    linha = [];
+                } else {
+                    campo += c;
+                }
+            }
+            linha.push(campo);
+            if (linha.some(x => x.trim() !== '')) linhas.push(linha);
+            return linhas;
+        }
+
+        function parsePreco(v) {
+            let s = String(v || '').replace(/R\$|\s/g, '');
+            if (!s) return NaN;
+            if (s.includes(',') && s.includes('.')) s = s.replace(/\./g, '').replace(',', '.');
+            else if (s.includes(',')) s = s.replace(',', '.');
+            return parseFloat(s);
+        }
+
+        function parseDataOferta(v) {
+            const s = String(v || '').trim();
+            let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+            if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+            m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+            if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+            return hojeISO();
+        }
+
+        // "Tatico" -> "Supermercado Tatico" (mesmo nome usado no restante do painel)
+        function nomeMercadoPadrao(nome) {
+            const n = normalizar(nome);
+            if (!n) return nome;
+            const achado = INITIAL_ESTABLISHMENTS.find(e => e !== 'Outro' && (normalizar(e).includes(n) || n.includes(normalizar(e))));
+            return achado || nome.trim();
+        }
+
+        // Colunas: data, supermercado, produto, preco [, link]. Com cabeçalho, a ordem não importa.
+        function linhasParaOfertas(texto) {
+            const linhas = parseCsv(texto);
+            if (linhas.length === 0) return [];
+            const nomes = linhas[0].map(c => normalizar(c));
+            const temCab = nomes.includes('produto') || nomes.includes('preco') || nomes.includes('data');
+            const idx = { data: 0, mercado: 1, produto: 2, preco: 3, link: 4 };
+            if (temCab) {
+                const achar = (...ops) => nomes.findIndex(n => ops.includes(n));
+                idx.data = achar('data');
+                idx.mercado = achar('supermercado', 'mercado', 'loja');
+                idx.produto = achar('produto', 'item', 'nome');
+                idx.preco = achar('preco', 'valor');
+                idx.link = achar('link', 'url');
+            }
+            const saida = [];
+            (temCab ? linhas.slice(1) : linhas).forEach(l => {
+                const produto = (l[idx.produto] || '').trim();
+                const mercado = (l[idx.mercado] || '').trim();
+                const preco = parsePreco(l[idx.preco]);
+                if (!produto || !mercado || !(preco > 0)) return;
+                saida.push({
+                    data: idx.data >= 0 ? parseDataOferta(l[idx.data]) : hojeISO(),
+                    mercado: nomeMercadoPadrao(mercado),
+                    produto,
+                    preco,
+                    link: idx.link >= 0 ? (l[idx.link] || '').trim() : ''
+                });
+            });
+            return saida;
+        }
+
+        const MONITOR_STOP = new Set(['de', 'da', 'do', 'com', 'sem', 'para', 'em', 'e', 'a', 'o', 'un', 'und', 'unidade', 'pacote', 'pct', 'kg', 'g', 'l', 'ml', 'lata', 'caixa']);
+        function tokensNome(s) {
+            return normalizar(s)
+                .replace(/(\d)\s+(kg|g|ml|l)\b/g, '$1$2')
+                .split(/[^a-z0-9]+/)
+                .filter(t => t && !MONITOR_STOP.has(t));
+        }
+
+        // Vincula o nome da oferta a um produto seu: todas as palavras do seu produto precisam
+        // aparecer na oferta, e elas devem ser pelo menos 40% do nome da oferta.
+        function acharProdutoDaOferta(nomeOferta, produtos) {
+            const tOf = tokensNome(nomeOferta);
+            const setOf = new Set(tOf);
+            let melhor = null, melhorN = 0;
+            for (const p of produtos) {
+                const tp = tokensNome(p.name);
+                if (tp.length === 0 || !tp.every(t => setOf.has(t))) continue;
+                if (tp.length / Math.max(tOf.length, 1) < 0.4) continue;
+                if (tp.length > melhorN) { melhor = p; melhorN = tp.length; }
+            }
+            return melhor;
+        }
+
+        function MonitorOfertas({ visivel, produtos, historicoPrecos, executar, mostrarToast }) {
+            const [csvUrl, setCsvUrl] = useState('');
+            const [urlInput, setUrlInput] = useState('');
+            const [ofertas, setOfertas] = useState([]);
+            const [status, setStatus] = useState('inativo');
+            const [erro, setErro] = useState('');
+            const [ultimaLeitura, setUltimaLeitura] = useState(null);
+            const [filtroMercado, setFiltroMercado] = useState('Todos');
+            const [soMeus, setSoMeus] = useState(false);
+            const [busca, setBusca] = useState('');
+            const [textoManual, setTextoManual] = useState('');
+
+            const dadosRef = React.useRef({});
+            dadosRef.current = { produtos, historicoPrecos };
+
+            // Grava no histórico os preços dos seus produtos (idempotente: mesmo id = mesmo registro)
+            const processar = async (texto, mesclar) => {
+                const lista = linhasParaOfertas(texto);
+                const { produtos: prods, historicoPrecos: hist } = dadosRef.current;
+                const ultimoPreco = {};
+                [...hist].sort((a, b) => (a.date || '').localeCompare(b.date || '')).forEach(h => {
+                    ultimoPreco[`${h.product_id}|${normalizar(h.source)}`] = Number(h.price);
+                });
+                const existentes = new Set(hist.map(h => h.id));
+                let gravados = 0;
+                for (const o of [...lista].sort((a, b) => a.data.localeCompare(b.data))) {
+                    const prod = acharProdutoDaOferta(o.produto, prods);
+                    if (!prod) continue;
+                    const chave = `${prod.id}|${normalizar(o.mercado)}`;
+                    const id = `site_${slug(o.mercado)}_${slug(o.produto)}_${o.data}`;
+                    if (existentes.has(id)) { ultimoPreco[chave] = o.preco; continue; }
+                    if (ultimoPreco[chave] === o.preco) continue; // preço não mudou: não repete no histórico
+                    await CB.saveDoc('price_history', id, {
+                        product_id: prod.id, product_name: prod.name, price: o.preco,
+                        date: o.data, source: o.mercado, from_site: true, is_demo: false
+                    });
+                    existentes.add(id);
+                    ultimoPreco[chave] = o.preco;
+                    gravados++;
+                }
+                setOfertas(prev => mesclar ? [...prev, ...lista] : lista);
+                return { total: lista.length, gravados };
+            };
+
+            // Link salvo (na nuvem ou no navegador, conforme o modo)
+            useEffect(() => {
+                return CB.subscribeCollection('settings', (docs) => {
+                    const d = docs.find(x => x.id === 'ofertas');
+                    const url = (d && d.csv_url) || '';
+                    setCsvUrl(url);
+                    setUrlInput(prev => prev || url);
+                }, (e) => console.error(e));
+            }, []);
+
+            // Leitura automática: ao abrir e a cada 30 minutos (mesmo com outra aba aberta)
+            useEffect(() => {
+                if (!csvUrl) { setStatus('inativo'); return; }
+                let cancelado = false;
+                const buscar = async () => {
+                    setStatus('lendo');
+                    try {
+                        const res = await fetch(csvUrl + (csvUrl.includes('?') ? '&' : '?') + '_=' + Date.now());
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        const texto = await res.text();
+                        if (/^\s*<(!doctype|html)/i.test(texto)) throw new Error('A resposta não é um CSV. A planilha está publicada na web?');
+                        if (cancelado) return;
+                        await processar(texto, false);
+                        if (cancelado) return;
+                        setErro(''); setStatus('ok'); setUltimaLeitura(new Date());
+                    } catch (e) {
+                        if (cancelado) return;
+                        console.error(e);
+                        setErro(e.message || 'Falha ao ler a planilha.');
+                        setStatus('erro');
+                    }
+                };
+                buscar();
+                const t = setInterval(buscar, MONITOR_INTERVALO_MS);
+                return () => { cancelado = true; clearInterval(t); };
+            }, [csvUrl]);
+
+            const atuais = useMemo(() => {
+                const mapa = {};
+                ofertas.forEach(o => {
+                    const k = `${normalizar(o.mercado)}|${normalizar(o.produto)}`;
+                    if (!mapa[k] || o.data >= mapa[k].data) mapa[k] = o;
+                });
+                return Object.values(mapa).map(o => {
+                    const prod = acharProdutoDaOferta(o.produto, produtos);
+                    let vsMedia = null;
+                    if (prod) {
+                        const ps = historicoPrecos.filter(h => h.product_id === prod.id).map(h => Number(h.price)).filter(v => v > 0);
+                        if (ps.length > 1) {
+                            const media = ps.reduce((a, b) => a + b, 0) / ps.length;
+                            vsMedia = ((media - o.preco) / media) * 100;
+                        }
+                    }
+                    return { ...o, prod, vsMedia };
+                });
+            }, [ofertas, produtos, historicoPrecos]);
+
+            if (!visivel) return null;
+
+            const salvarUrl = () => executar(async () => {
+                const u = urlInput.trim();
+                if (u && !/^https?:\/\//i.test(u)) { mostrarToast('Cole um link que comece com https://', 'erro'); return; }
+                await CB.saveDoc('settings', 'ofertas', { csv_url: u });
+                if (!u) setOfertas([]);
+                mostrarToast(u ? 'Link salvo. Leitura automática ativada!' : 'Monitoramento desativado.');
+            });
+
+            const importarManual = () => executar(async () => {
+                if (!textoManual.trim()) return;
+                const r = await processar(textoManual, true);
+                setUltimaLeitura(new Date());
+                setTextoManual('');
+                mostrarToast(`${r.total} oferta(s) lida(s); ${r.gravados} preço(s) novo(s) no histórico.`);
+            });
+
+            const cadastrar = (o) => executar(async () => {
+                const id = `site_${slug(o.produto)}`;
+                await CB.saveDoc('products', id, {
+                    name: o.produto, category: 'Outros', brand: '', unit: 'unidade',
+                    default_quantity: 1, minimum_stock: 1, image_url: '',
+                    notes: 'Cadastrado pelo monitor de ofertas', is_demo: false
+                });
+                await CB.saveDoc('price_history', `site_${slug(o.mercado)}_${slug(o.produto)}_${o.data}`, {
+                    product_id: id, product_name: o.produto, price: o.preco,
+                    date: o.data, source: o.mercado, from_site: true, is_demo: false
+                });
+                mostrarToast('Produto cadastrado e preço registrado!');
+            });
+
+            const mercados = [...new Set(atuais.map(o => o.mercado))].sort();
+            const t = normalizar(busca);
+            const filtradas = atuais
+                .filter(o => (filtroMercado === 'Todos' || o.mercado === filtroMercado)
+                    && (!soMeus || o.prod)
+                    && (!t || normalizar(o.produto).includes(t)))
+                .sort((a, b) => (b.prod ? 1 : 0) - (a.prod ? 1 : 0)
+                    || (b.vsMedia === null ? -999 : b.vsMedia) - (a.vsMedia === null ? -999 : a.vsMedia)
+                    || a.produto.localeCompare(b.produto));
+
+            const rotuloStatus = {
+                inativo: { txt: 'Desativado', cls: 'bg-slate-100 text-slate-600' },
+                lendo: { txt: 'Lendo...', cls: 'bg-amber-100 text-amber-800' },
+                ok: { txt: 'Ativo', cls: 'bg-emerald-100 text-emerald-700' },
+                erro: { txt: 'Erro', cls: 'bg-rose-100 text-rose-700' }
+            }[status];
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 space-y-3">
+                        <div className="flex flex-wrap justify-between items-start gap-2">
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-800">🌐 Ofertas dos sites dos supermercados</h2>
+                                <p className="text-xs text-slate-500">Lê a planilha do coletor (colunas: data, supermercado, produto, preco, link opcional) ao abrir e a cada 30 min.</p>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${rotuloStatus.cls}`}>{rotuloStatus.txt}</span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <input type="url" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv" value={urlInput} onChange={e => setUrlInput(e.target.value)} className="flex-1 border rounded-xl px-3 py-2 text-xs" />
+                            <button onClick={salvarUrl} className="bg-violet-700 hover:bg-violet-600 text-white px-4 py-2 rounded-xl text-xs font-bold">{csvUrl ? 'Atualizar link' : 'Salvar e ativar'}</button>
+                            {csvUrl && <button onClick={() => { setUrlInput(''); executar(async () => { await CB.saveDoc('settings', 'ofertas', { csv_url: '' }); setOfertas([]); mostrarToast('Monitoramento desativado.'); }); }} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold">Desativar</button>}
+                        </div>
+                        {ultimaLeitura && <p className="text-[11px] text-slate-500">Última leitura: {ultimaLeitura.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} • {atuais.length} oferta(s) • {atuais.filter(o => o.prod).length} nos seus produtos</p>}
+                        {erro && <p className="text-xs text-rose-600">⚠️ {erro}</p>}
+                        <details className="text-xs text-slate-600">
+                            <summary className="cursor-pointer font-bold text-violet-700">Testar colando linhas manualmente</summary>
+                            <textarea value={textoManual} onChange={e => setTextoManual(e.target.value)} placeholder={'data,supermercado,produto,preco\n2026-11-15,Tatico,Arroz Branco Tio João 5kg,26.90'} className="w-full h-24 border rounded-xl p-3 text-xs font-mono mt-2" />
+                            <button onClick={importarManual} className="mt-2 bg-violet-100 text-violet-800 px-4 py-2 rounded-xl text-xs font-bold">Importar linhas</button>
+                        </details>
+                    </div>
+
+                    {atuais.length > 0 && (
+                        <div className="space-y-3">
+                            <div className="flex flex-wrap gap-1.5 items-center">
+                                <button onClick={() => setFiltroMercado('Todos')} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${filtroMercado === 'Todos' ? 'bg-violet-700 text-white' : 'bg-slate-100 text-slate-600'}`}>Todos</button>
+                                {mercados.map(m => (
+                                    <button key={m} onClick={() => setFiltroMercado(m)} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${filtroMercado === m ? 'bg-violet-700 text-white' : 'bg-slate-100 text-slate-600'}`}>{m.replace('Supermercado ', '')}</button>
+                                ))}
+                                <label className="flex items-center space-x-1.5 text-xs text-slate-600 ml-2 cursor-pointer">
+                                    <input type="checkbox" checked={soMeus} onChange={e => setSoMeus(e.target.checked)} className="accent-violet-700" />
+                                    <span>Só meus produtos</span>
+                                </label>
+                            </div>
+                            <input type="text" placeholder="Buscar nas ofertas..." value={busca} onChange={e => setBusca(e.target.value)} className="w-full bg-white border rounded-2xl px-4 py-2.5 text-xs shadow-sm" />
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filtradas.map(o => {
+                            const dias = calcularDiasParaVencer(o.data);
+                            const antiga = dias !== null && dias < -7;
+                            return (
+                                <div key={`${o.mercado}|${o.produto}`} className={`bg-white rounded-3xl p-5 shadow-sm border flex flex-col justify-between ${o.prod ? 'border-violet-200' : 'border-slate-200'} ${antiga ? 'opacity-60' : ''}`}>
+                                    <div>
+                                        <div className="flex justify-between items-start gap-2 mb-2">
+                                            <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full">{o.mercado.replace('Supermercado ', '')}</span>
+                                            {o.vsMedia !== null && o.vsMedia > 0 && <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">-{o.vsMedia.toFixed(0)}% vs sua média</span>}
+                                        </div>
+                                        <h4 className="text-sm font-bold text-slate-800">{o.produto}</h4>
+                                        <p className="text-[11px] text-slate-500 mt-0.5">{o.data}{antiga ? ' • possivelmente desatualizada' : ''}</p>
+                                        {o.prod && <p className="text-[11px] text-violet-700 font-semibold mt-1">✅ Seu produto: {o.prod.name}</p>}
+                                    </div>
+                                    <div className="flex justify-between items-center mt-3 pt-3 border-t">
+                                        <span className="text-base font-bold text-violet-800">R$ {dinheiro(o.preco)}</span>
+                                        <div className="flex gap-2">
+                                            {/^https?:\/\//i.test(o.link) && <a href={o.link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-violet-700 font-bold hover:underline">Ver no site</a>}
+                                            {!o.prod && <button onClick={() => cadastrar(o)} className="text-[11px] bg-violet-100 text-violet-800 font-bold px-2.5 py-1 rounded-lg hover:bg-violet-200">+ Monitorar</button>}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {atuais.length === 0 && (
+                        <p className="text-xs text-slate-400 text-center py-8">{csvUrl ? 'Nenhuma oferta lida ainda. Confira se a planilha tem linhas no formato indicado.' : 'Cole acima o link CSV da planilha do coletor para começar.'}</p>
+                    )}
+                    {atuais.length > 0 && filtradas.length === 0 && <p className="text-xs text-slate-400 text-center py-6">Nenhuma oferta neste filtro.</p>}
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
