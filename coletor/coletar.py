@@ -67,7 +67,7 @@ PROMPT = (
  
 JS_IMAGENS = r"""
 () => {
-  const BAD = /logo|icon|favicon|sprite|avatar|pixel|loading|placeholder/i;
+  const BAD = /logo|icon|favicon|sprite|avatar|pixel|loading|placeholder|\/(styles|themes|icons|assets|sprites)\//i;
   const THUMB = /-\d{2,3}x\d{2,3}\.(jpe?g|png|webp)/i;
   const ehImg = (u) => /\.(jpe?g|png|webp)(\?|$)/i.test(u || '');
   const contexto = (el) => {
@@ -88,6 +88,13 @@ JS_IMAGENS = r"""
     if (!ehImg(url) || BAD.test(url) || THUMB.test(url) || achados.has(url)) return;
     if (!pelaLink && (img.naturalWidth || 0) < 500) return;
     achados.set(url, contexto(a || img));
+  });
+  // links que apontam direto para uma imagem, mesmo sem <img> dentro (galerias com imagem de fundo)
+  document.querySelectorAll('a[href]').forEach(a => {
+    const url = a.href;
+    if (!ehImg(url) || BAD.test(url) || THUMB.test(url) || achados.has(url)) return;
+    if (a.closest('header, footer, nav')) return;
+    achados.set(url, contexto(a));
   });
   return Array.from(achados, ([url, ctx]) => ({ url, ctx }));
 }
@@ -140,7 +147,7 @@ def chamar_gemini(partes):
             headers={"Content-Type": "application/json", "x-goog-api-key": chave},
         )
         try:
-            with urllib.request.urlopen(req, timeout=120) as r:
+            with urllib.request.urlopen(req, timeout=240) as r:
                 dados = json.loads(r.read())
             break
         except urllib.error.HTTPError as e:
@@ -157,6 +164,11 @@ def chamar_gemini(partes):
                 time.sleep(15 * (tentativa + 1))
                 continue
             raise RuntimeError(f"Gemini HTTP {e.code}: {detalhe!r}")
+        except (TimeoutError, urllib.error.URLError, ConnectionError) as e:
+            if tentativa < 2:  # lentidão ou queda de conexão: tenta de novo
+                time.sleep(10 * (tentativa + 1))
+                continue
+            raise RuntimeError(f"Sem resposta da IA: {str(e)[:150]}")
     try:
         texto = dados["candidates"][0]["content"]["parts"][0]["text"]
     except (KeyError, IndexError, TypeError):
@@ -225,15 +237,36 @@ def ler_com_ia(partes, run):
  
  
 # ---------------------------------------------------------------- páginas
-def baixar_imagem(page, url):
-    r = page.request.get(url, timeout=60000)
-    if not r.ok:
-        raise RuntimeError(f"HTTP {r.status}")
-    tipo = (r.headers.get("content-type") or "").split(";")[0].strip().lower()
+def tipo_da_imagem(headers, url):
+    tipo = (headers.get("content-type") or "").split(";")[0].strip().lower()
     if tipo not in ("image/jpeg", "image/png", "image/webp"):
         ext = url.split("?")[0].rsplit(".", 1)[-1].lower()
         tipo = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}.get(ext)
-    corpo = r.body()
+    return tipo
+ 
+ 
+def baixar_imagem(page, url, referer):
+    tipo, corpo, erro = None, None, ""
+    # 1) requisição direta, dizendo de qual página o pedido veio
+    try:
+        r = page.request.get(url, timeout=60000, headers={
+            "Referer": referer, "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8"})
+        if r.ok:
+            tipo, corpo = tipo_da_imagem(r.headers, url), r.body()
+        else:
+            erro = f"HTTP {r.status}"
+    except Exception as e:
+        erro = str(e)[:100]
+    # 2) alguns sites recusam a requisição direta (403); abrir a imagem como um navegador faz costuma passar
+    if corpo is None:
+        aba = page.context.new_page()
+        try:
+            r = aba.goto(url, referer=referer, timeout=60000, wait_until="load")
+            if r is None or not r.ok:
+                raise RuntimeError(f"{erro or 'sem resposta'}; navegador: HTTP {r.status if r else '?'}")
+            tipo, corpo = tipo_da_imagem(r.headers, url), r.body()
+        finally:
+            aba.close()
     if not tipo or len(corpo) < 5000 or len(corpo) > 15 * 1024 * 1024:
         return None
     return tipo, corpo
@@ -272,7 +305,11 @@ def coletar_loja(page, loja, estado, run, hoje):
         leu_algo = True
         chave = f"texto:{nome}:{hashlib.sha1(texto.encode('utf-8')).hexdigest()[:16]}"
         if chave not in lidos:
-            res = ler_com_ia([{"text": PROMPT + "\n\nTexto da página:\n" + texto[:30000]}], run)
+            try:
+                res = ler_com_ia([{"text": PROMPT + "\n\nTexto da página:\n" + texto[:30000]}], run)
+            except Exception as e:
+                log(f"  ! leitura do texto: {str(e)[:150]}")
+                res = None
             if res is not None:
                 lidos[chave] = hoje
                 ofertas += [(p, v, url) for p, v in res]
@@ -283,7 +320,7 @@ def coletar_loja(page, loja, estado, run, hoje):
     for img in novas:
         leu_algo = True
         try:
-            baixada = baixar_imagem(page, img["url"])
+            baixada = baixar_imagem(page, img["url"], url)
             if baixada is None:
                 lidos["img:" + img["url"]] = hoje  # ícone/arquivo estranho: não tentar de novo
                 continue
@@ -306,7 +343,11 @@ def coletar_loja(page, loja, estado, run, hoje):
                 h = min(2400, altura - y)
                 png = page.screenshot(clip={"x": 0, "y": y, "width": VIEW_W, "height": h},
                                       full_page=True, type="jpeg", quality=70)
-                res = ler_com_ia([{"text": PROMPT}, parte_imagem("image/jpeg", png)], run)
+                try:
+                    res = ler_com_ia([{"text": PROMPT}, parte_imagem("image/jpeg", png)], run)
+                except Exception as e:
+                    log(f"  ! leitura do print: {str(e)[:150]}")
+                    res = None
                 if res is None:
                     completo = False
                     break
