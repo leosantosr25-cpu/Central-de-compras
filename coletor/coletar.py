@@ -1,14 +1,15 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Coletor de ofertas dos supermercados (roda no GitHub Actions, de graça).
-
+ 
 Para cada loja em LOJAS:
   1. abre a página com um navegador de verdade (Playwright), o que resolve sites com JavaScript;
   2. se a página tem texto com preços ("R$"), manda o texto para a IA (Gemini);
   3. baixa as imagens de encarte novas e manda para a IA ler produto e preço;
   4. se não achou nem texto nem imagens, tira "prints" da página e manda para a IA.
-
+ 
 O resultado vai para dados/ofertas.csv (colunas: data, supermercado, produto, preco, link),
 que o painel lê na aba "Sites dos mercados".
 """
@@ -25,9 +26,9 @@ import urllib.request
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
-
+ 
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
-
+ 
 RAIZ = Path(__file__).resolve().parent.parent
 DADOS = RAIZ / "dados"
 FUSO = ZoneInfo("America/Sao_Paulo")
@@ -35,7 +36,7 @@ CAMPOS = ["data", "supermercado", "produto", "preco", "link"]
 VIEW_W = 1366
 USER_AGENT = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
-
+ 
 # Os nomes abaixo são reconhecidos pelo painel ("Tatico" vira "Supermercado Tatico", etc.).
 # excluir_contexto: expressão regular; imagens cujo texto vizinho combine com ela são ignoradas
 # (o site da Costa mostra encartes de várias cidades; aqui ficam só os de Goiânia).
@@ -49,12 +50,12 @@ LOJAS = [
         "excluir_contexto": r"Distrito Federal|Valpara|Rio Verde|Luzi[aâ]nia|Senador Canedo|Trindade",
     },
 ]
-
+ 
 # Limites para ficar dentro da camada gratuita da IA (podem ser mudados no workflow).
 LIMITE_CHAMADAS = int(os.environ.get("LIMITE_CHAMADAS") or 40)   # chamadas à IA por execução
 PAUSA = float(os.environ.get("PAUSA_ENTRE_CHAMADAS") or 6)        # segundos entre chamadas
 DIAS_HISTORICO = 60                                               # quantos dias ficam no CSV
-
+ 
 PROMPT = (
     "Você lê ofertas de supermercado do Brasil. Extraia TODOS os produtos que tenham preço visível. "
     "Responda somente com um array JSON; cada item no formato "
@@ -63,7 +64,7 @@ PROMPT = (
     "Regras: use o preço da embalagem/unidade como anunciado (só use preço por kg quando for o único); "
     "ignore itens sem preço legível; não invente nada; sem texto fora do JSON; se não houver ofertas, responda []."
 )
-
+ 
 JS_IMAGENS = r"""
 () => {
   const BAD = /logo|icon|favicon|sprite|avatar|pixel|loading|placeholder/i;
@@ -91,7 +92,7 @@ JS_IMAGENS = r"""
   return Array.from(achados, ([url, ctx]) => ({ url, ctx }));
 }
 """
-
+ 
 JS_ROLAR = """
 async () => {
   const esperar = (ms) => new Promise(r => setTimeout(r, ms));
@@ -103,26 +104,30 @@ async () => {
   window.scrollTo(0, 0);
 }
 """
-
-
+ 
+ 
 def log(*args):
     print(*args, flush=True)
-
-
+ 
+ 
 def hoje_iso():
     return datetime.now(FUSO).date().isoformat()
-
-
+ 
+ 
 class CotaEsgotada(Exception):
     pass
-
-
+ 
+ 
+class ErroFatalIA(Exception):
+    """Erro que se repetiria em toda chamada (modelo inexistente, chave inválida...)."""
+ 
+ 
 # ---------------------------------------------------------------- IA (Gemini)
 def chamar_gemini(partes):
     chave = os.environ.get("GEMINI_API_KEY")
     if not chave:
         raise RuntimeError("GEMINI_API_KEY não configurada")
-    modelo = os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash"
+    modelo = os.environ.get("GEMINI_MODEL") or "gemini-3.8-flash"
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
     corpo = json.dumps({
         "contents": [{"parts": partes}],
@@ -139,7 +144,10 @@ def chamar_gemini(partes):
                 dados = json.loads(r.read())
             break
         except urllib.error.HTTPError as e:
-            detalhe = e.read()[:300]
+            detalhe = e.read()[:600]
+            if e.code in (400, 401, 403, 404):
+                texto_erro = detalhe.decode("utf-8", "replace").replace("\n", " ")
+                raise ErroFatalIA(f"Gemini HTTP {e.code} (modelo '{modelo}'): {texto_erro}")
             if e.code == 429:
                 if tentativa >= 1:
                     raise CotaEsgotada(f"limite da IA atingido (HTTP 429): {detalhe!r}")
@@ -154,8 +162,8 @@ def chamar_gemini(partes):
     except (KeyError, IndexError, TypeError):
         raise RuntimeError(f"Resposta sem conteúdo da IA: {str(dados)[:300]}")
     return json.loads(texto)
-
-
+ 
+ 
 def converter_preco(v):
     if isinstance(v, (int, float)) and not isinstance(v, bool):
         return float(v)
@@ -170,8 +178,8 @@ def converter_preco(v):
         return float(s)
     except ValueError:
         return None
-
-
+ 
+ 
 def normalizar_resposta(resp):
     if isinstance(resp, dict):
         for v in resp.values():
@@ -194,8 +202,8 @@ def normalizar_resposta(resp):
             continue
         saida.append((nome, round(preco, 2)))
     return saida
-
-
+ 
+ 
 def ler_com_ia(partes, run):
     """Devolve a lista de (produto, preco), ou None se não foi lido (limite atingido)."""
     if run["parar"] or run["chamadas"] >= LIMITE_CHAMADAS:
@@ -209,8 +217,13 @@ def ler_com_ia(partes, run):
         run["parar"] = True
         log("  ! " + str(e))
         return None
-
-
+    except ErroFatalIA as e:
+        run["parar"] = True
+        run["erro_ia"] = str(e)[:500]
+        log("  ! ERRO NA IA (a coleta foi interrompida): " + run["erro_ia"])
+        return None
+ 
+ 
 # ---------------------------------------------------------------- páginas
 def baixar_imagem(page, url):
     r = page.request.get(url, timeout=60000)
@@ -224,18 +237,18 @@ def baixar_imagem(page, url):
     if not tipo or len(corpo) < 5000 or len(corpo) > 15 * 1024 * 1024:
         return None
     return tipo, corpo
-
-
+ 
+ 
 def parte_imagem(tipo, corpo):
     return {"inline_data": {"mime_type": tipo, "data": base64.b64encode(corpo).decode("ascii")}}
-
-
+ 
+ 
 def coletar_loja(page, loja, estado, run, hoje):
     nome, url = loja["nome"], loja["url"]
     lidos = estado["lidos"]
     resumo = {"imagens": 0, "imagens_novas": 0, "ofertas": 0}
     ofertas = []  # (produto, preco, link)
-
+ 
     page.goto(url, wait_until="domcontentloaded", timeout=60000)
     try:
         page.wait_for_load_state("networkidle", timeout=20000)
@@ -243,7 +256,7 @@ def coletar_loja(page, loja, estado, run, hoje):
         pass
     page.evaluate(JS_ROLAR)
     page.wait_for_timeout(1000)
-
+ 
     texto = page.inner_text("body")
     imagens = page.evaluate(JS_IMAGENS)
     if loja.get("excluir_contexto"):
@@ -251,9 +264,9 @@ def coletar_loja(page, loja, estado, run, hoje):
         imagens = [i for i in imagens if not rx.search(i.get("ctx") or "")]
     resumo["imagens"] = len(imagens)
     log(f"  texto: {len(texto)} caracteres, {texto.count('R$')} símbolos R$; imagens candidatas: {len(imagens)}")
-
+ 
     leu_algo = False
-
+ 
     # 1) texto da página (mais barato e mais preciso que imagem)
     if texto.count("R$") >= 5:
         leu_algo = True
@@ -263,7 +276,7 @@ def coletar_loja(page, loja, estado, run, hoje):
             if res is not None:
                 lidos[chave] = hoje
                 ofertas += [(p, v, url) for p, v in res]
-
+ 
     # 2) imagens de encarte ainda não lidas
     novas = [i for i in imagens if "img:" + i["url"] not in lidos]
     resumo["imagens_novas"] = len(novas)
@@ -282,7 +295,7 @@ def coletar_loja(page, loja, estado, run, hoje):
             break  # limite de chamadas/cota: o resto fica para a próxima execução
         lidos["img:" + img["url"]] = hoje
         ofertas += [(p, v, img["url"]) for p, v in res]
-
+ 
     # 3) sem texto de preços nem imagens: "prints" da página
     if not leu_algo and not imagens:
         chave = f"tela:{nome}:{hoje}"
@@ -300,11 +313,11 @@ def coletar_loja(page, loja, estado, run, hoje):
                 ofertas += [(p, v, url) for p, v in res]
             if completo:
                 lidos[chave] = hoje
-
+ 
     resumo["ofertas"] = len(ofertas)
     return resumo, ofertas
-
-
+ 
+ 
 # ---------------------------------------------------------------- arquivos
 def carregar_estado():
     try:
@@ -314,29 +327,29 @@ def carregar_estado():
     except Exception:
         pass
     return {"lidos": {}}
-
-
+ 
+ 
 def podar_estado(estado, hoje):
     limite = (datetime.fromisoformat(hoje) - timedelta(days=90)).date().isoformat()
     estado["lidos"] = {k: v for k, v in estado["lidos"].items() if str(v) >= limite}
-
-
+ 
+ 
 def ler_csv():
     caminho = DADOS / "ofertas.csv"
     if not caminho.exists():
         return []
     with open(caminho, newline="", encoding="utf-8") as f:
         return [dict(l) for l in csv.DictReader(f)]
-
-
+ 
+ 
 def gravar_csv(linhas):
     with open(DADOS / "ofertas.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=CAMPOS)
         w.writeheader()
         for l in linhas:
             w.writerow({c: l.get(c, "") for c in CAMPOS})
-
-
+ 
+ 
 def mesclar(existentes, novas, hoje):
     limite = (datetime.fromisoformat(hoje) - timedelta(days=DIAS_HISTORICO)).date().isoformat()
     vistos, saida = set(), []
@@ -350,8 +363,8 @@ def mesclar(existentes, novas, hoje):
         saida.append(l)
     saida.sort(key=lambda l: (l["data"], l["supermercado"], l["produto"]))
     return saida
-
-
+ 
+ 
 def main():
     if not os.environ.get("GEMINI_API_KEY"):
         log("ERRO: crie o segredo GEMINI_API_KEY no repositório (Settings > Secrets and variables > Actions).")
@@ -359,9 +372,9 @@ def main():
     DADOS.mkdir(exist_ok=True)
     hoje = hoje_iso()
     estado = carregar_estado()
-    run = {"chamadas": 0, "parar": False}
+    run = {"chamadas": 0, "parar": False, "erro_ia": ""}
     novas, resumo = [], {}
-
+ 
     with sync_playwright() as pw:
         navegador = pw.chromium.launch(args=["--no-sandbox"])
         contexto = navegador.new_context(
@@ -383,23 +396,26 @@ def main():
             finally:
                 page.close()
         navegador.close()
-
+ 
     podar_estado(estado, hoje)
     (DADOS / "estado.json").write_text(json.dumps(estado, ensure_ascii=False, indent=1), "utf-8")
     gravar_csv(mesclar(ler_csv(), novas, hoje))
     (DADOS / "ultima-execucao.json").write_text(json.dumps({
         "quando": datetime.now(FUSO).isoformat(timespec="seconds"),
         "chamadas_ia": run["chamadas"],
-        "limite_atingido": run["parar"] or run["chamadas"] >= LIMITE_CHAMADAS,
+        "limite_atingido": run["chamadas"] >= LIMITE_CHAMADAS,
+        "erro_ia": run["erro_ia"],
         "ofertas_novas": len(novas),
         "lojas": resumo,
     }, ensure_ascii=False, indent=1), "utf-8")
     log(f"Concluído: {len(novas)} oferta(s) lida(s), {run['chamadas']} chamada(s) à IA.")
-
+ 
+    if run["erro_ia"] and not novas:
+        return 1  # a IA recusou as chamadas: deixa a execução vermelha para você ser avisado
     if resumo and all("erro" in r for r in resumo.values()):
         return 1  # todas as lojas falharam: deixa a execução vermelha para você ser avisado
     return 0
-
-
+ 
+ 
 if __name__ == "__main__":
     sys.exit(main())
