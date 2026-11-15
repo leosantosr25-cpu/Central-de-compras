@@ -1,0 +1,49 @@
+name: Coletar ofertas
+
+on:
+  schedule:
+    - cron: '0 9 * * *'   # todo dia às 06:00 (horário de Brasília)
+  workflow_dispatch:       # permite rodar na hora, pelo botão "Run workflow"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: coletar-ofertas
+  cancel-in-progress: false
+
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependências
+        run: |
+          pip install -r coletor/requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Coletar ofertas
+        run: python coletor/coletar.py
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+
+      - name: Salvar resultados no repositório
+        if: always()
+        run: |
+          git config user.name "coletor-ofertas"
+          git config user.email "coletor-ofertas@users.noreply.github.com"
+          git add dados
+          if git diff --cached --quiet; then
+            echo "Nada novo para salvar."
+          else
+            git commit -m "Atualiza ofertas"
+            git pull --rebase
+            git push
+          fi
