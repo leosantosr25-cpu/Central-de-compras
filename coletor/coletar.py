@@ -4,10 +4,10 @@
 Coletor de ofertas dos supermercados (roda no GitHub Actions, de graça).
 
 Melhorias aplicadas:
-  1. Desativação do 'thinkingBudget' na IA -> respostas em ~3 segundos em vez de 150s.
-  2. Captura de imagens via screenshot do elemento no Playwright -> resolve o HTTP 403 do Assaí.
-  3. Suporte a imagens Lazy Loading (WordPress/Elementor) -> resolve Tatico.
-  4. Tratamento contra timeouts e banners de cookies.
+  1. Modelo oficial 'gemini-3.8-flash' com 'thinkingBudget: 0' -> respostas em 2 a 5 segundos.
+  2. Captura de imagens via screenshot do elemento -> resolve o HTTP 403 do Assaí.
+  3. Varredura de iframes e suporte a Lazy Loading -> resolve o Tatico.
+  4. Fechamento automático de avisos de cookies e proteção contra timeouts.
 """
 import base64
 import csv
@@ -63,7 +63,6 @@ PROMPT = (
 PROMPT_LOTE = PROMPT + (" Vários encartes ou páginas do mesmo supermercado seguem anexados; "
                         "leia todos e junte os produtos num único array.")
 
-# JS aprimorado para capturar imagens lazy (data-src, data-lazy-src, srcset) e background-images
 JS_IMAGENS = r"""
 () => {
   const BAD = /logo|icon|favicon|sprite|avatar|pixel|loading|placeholder|\/(styles|themes|icons|assets|sprites)\//i;
@@ -94,7 +93,6 @@ JS_IMAGENS = r"""
     const a = img.closest('a');
     let url = (a && ehImg(a.href)) ? a.href : pegarUrl(img);
 
-    // Trata srcset do WordPress se a URL ainda estiver vazia ou com placeholder
     if ((!url || BAD.test(url)) && img.srcset) {
       const partes = img.srcset.split(',').map(s => s.trim().split(' ')[0]);
       url = partes[partes.length - 1] || url;
@@ -104,7 +102,6 @@ JS_IMAGENS = r"""
     achados.set(url, contexto(a || img));
   });
 
-  // Links diretos para imagens
   document.querySelectorAll('a[href]').forEach(a => {
     const url = a.href;
     if (!ehImg(url) || BAD.test(url) || THUMB.test(url) || achados.has(url)) return;
@@ -151,7 +148,7 @@ def chamar_gemini(partes):
     chave = os.environ.get("GEMINI_API_KEY")
     if not chave:
         raise RuntimeError("GEMINI_API_KEY não configurada")
-    modelo = os.environ.get("GEMINI_MODEL") or "gemini-2.0-flash"
+    modelo = os.environ.get("GEMINI_MODEL") or "gemini-3.8-flash"
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
 
     # Desativa thinkingBudget para respostas rápidas (2-5s em vez de 150s)
@@ -178,7 +175,7 @@ def chamar_gemini(partes):
             break
         except urllib.error.HTTPError as e:
             detalhe = e.read()[:1500]
-            # Se o modelo não aceitar thinkingConfig (ex.: 1.5-flash), tenta sem ele
+            # Se o modelo recusar thinkingConfig, tenta sem ele
             if e.code == 400 and b"thinkingConfig" in detalhe:
                 generation_config.pop("thinkingConfig", None)
                 corpo = json.dumps({
@@ -290,23 +287,24 @@ def tipo_da_imagem(headers, url):
 
 
 def baixar_imagem(page, url, referer):
-    """
-    Baixa a imagem com fallback em screenshot do elemento (evita 403 de CDNs como o Assaí).
-    """
     tipo, corpo = None, None
 
-    # 1) Se o elemento já está na tela, tira print direto dele (100% imune a 403)
+    # 1) Tenta screenshot do elemento na página principal ou em iframes (imune a 403)
     try:
         nome_arquivo = url.split("?")[0].split("/")[-1]
-        loc = page.locator(f'img[src*="{nome_arquivo}"]').first
-        if loc.count() > 0 and loc.is_visible():
-            corpo = loc.screenshot(type="jpeg", quality=85)
-            if len(corpo) >= 5000:
-                return "image/jpeg", corpo
+        for p in [page] + page.frames:
+            try:
+                loc = p.locator(f'img[src*="{nome_arquivo}"]').first
+                if loc.count() > 0 and loc.is_visible():
+                    corpo = loc.screenshot(type="jpeg", quality=85)
+                    if len(corpo) >= 5000:
+                        return "image/jpeg", corpo
+            except Exception:
+                pass
     except Exception:
         pass
 
-    # 2) Requisição HTTP direta simulando headers reais do navegador
+    # 2) Requisição HTTP direta com headers de navegador
     try:
         r = page.request.get(url, timeout=30000, headers={
             "Referer": referer,
@@ -320,7 +318,7 @@ def baixar_imagem(page, url, referer):
     except Exception:
         pass
 
-    # 3) Fallback: Fetch dentro do contexto da própria página
+    # 3) Fallback: Fetch dentro do contexto do navegador
     if corpo is None:
         try:
             data_url = page.evaluate("""async (u) => {
@@ -368,7 +366,7 @@ def ler_telas(page, nome, url, run, lidos, hoje):
         return []
     altura = int(page.evaluate("document.documentElement.scrollHeight"))
     if altura < 400:
-        return []  # Página sem conteúdo real: não gasta cota da IA
+        return []
     achados, completo = [], True
     for y in range(0, min(altura, 7200), 2400):
         h = min(2400, altura - y)
@@ -406,6 +404,20 @@ def coletar_loja(page, loja, estado, run, hoje):
 
     texto = page.inner_text("body")
     imagens = page.evaluate(JS_IMAGENS)
+
+    # Varre iframes (essencial para encartes embutidos em WordPress/Tatico)
+    for frame in page.frames:
+        if frame != page.main_frame:
+            try:
+                imgs_frame = frame.evaluate(JS_IMAGENS)
+                if imgs_frame:
+                    imagens.extend(imgs_frame)
+                t_frame = frame.inner_text("body")
+                if t_frame and len(t_frame) > 100:
+                    texto += "\n" + t_frame
+            except Exception:
+                pass
+
     if loja.get("excluir_contexto"):
         rx = re.compile(loja["excluir_contexto"], re.I)
         imagens = [i for i in imagens if not rx.search(i.get("ctx") or "")]
@@ -475,9 +487,9 @@ def coletar_loja(page, loja, estado, run, hoje):
             break
     enviar_lote()
 
-    # 3) Plano B: prints da página (só se não achou texto nem imagens, e se a página tiver conteúdo)
+    # 3) Plano B: prints da página (só se não achou texto nem imagens)
     if not tem_texto and (not imagens or (novas and baixadas == 0)):
-        if len(texto.strip()) > 300:  # Evita print de páginas vazias ou bloqueadas
+        if len(texto.strip()) > 300:
             ofertas += [(p, v, url) for p, v in ler_telas(page, nome, url, run, lidos, hoje)]
 
     resumo["ofertas"] = len(ofertas)
