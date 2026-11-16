@@ -1,9 +1,9 @@
 {
- "quando": "2026-11-16T14:10:22-03:00",
- "chamadas_ia": 3,
+ "quando": "2026-11-16T15:33:49-03:00",
+ "chamadas_ia": 1,
  "limite_atingido": false,
  "parou_por_tempo": false,
- "erro_ia": "",
+ "erro_ia": "Gemini HTTP 400 (gemini-3.5-flash-lite): {   \"error\": {     \"code\": 400,     \"message\": \"Request contains an invalid argument.\",     \"status\": \"INVALID_ARGUMENT\"   } } ",
  "ofertas_novas": 0,
  "lojas": {
   "Tatico": {
