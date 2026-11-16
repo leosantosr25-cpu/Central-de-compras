@@ -4,10 +4,10 @@
 Coletor de ofertas dos supermercados (roda no GitHub Actions, de graça).
 
 Melhorias aplicadas:
-  1. Modelo oficial 'gemini-3.8-flash' com 'thinkingBudget: 0' -> respostas em 2 a 5 segundos.
-  2. Captura de imagens via screenshot do elemento -> resolve o HTTP 403 do Assaí.
-  3. Varredura de iframes e suporte a Lazy Loading -> resolve o Tatico.
-  4. Fechamento automático de avisos de cookies e proteção contra timeouts.
+  1. Fallback inteligente de modelo: se o 3.8-flash der 503 ou 429, usa o 3.5-flash-lite automaticamente.
+  2. URL correta do Tatico (Goiânia: /gyn/).
+  3. Captura de imagens via screenshot de elementos (imune a 403 do Assaí).
+  4. Varredura de iframes e suporte a lazy loading.
 """
 import base64
 import csv
@@ -34,7 +34,7 @@ USER_AGENT = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 
 LOJAS = [
-    {"nome": "Tatico", "url": "https://taticobaratotododia.com.br/gyn/ofertas/"},
+    {"nome": "Tatico", "url": "https://taticobaratotododia.com.br/gyn/"},
     {"nome": "Pro Brazilian", "url": "https://www.probrazilian.com.br/ofertas"},
     {"nome": "Assaí", "url": "https://www.assai.com.br/ofertas/goias/assai-independencia"},
     {
@@ -148,64 +148,65 @@ def chamar_gemini(partes):
     chave = os.environ.get("GEMINI_API_KEY")
     if not chave:
         raise RuntimeError("GEMINI_API_KEY não configurada")
-    modelo = os.environ.get("GEMINI_MODEL") or "gemini-3.8-flash"
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
 
-    # Desativa thinkingBudget para respostas rápidas (2-5s em vez de 150s)
-    generation_config = {
-        "temperature": 0,
-        "responseMimeType": "application/json",
-        "thinkingConfig": {"thinkingBudget": 0}
-    }
+    # Lista de modelos: se o principal estiver congestionado (503) ou esgotado (429), tenta o próximo
+    modelo_preferido = os.environ.get("GEMINI_MODEL") or "gemini-3.8-flash"
+    candidatos = [modelo_preferido, "gemini-3.5-flash-lite"]
+    modelos = list(dict.fromkeys(candidatos))
 
-    corpo = json.dumps({
-        "contents": [{"parts": partes}],
-        "generationConfig": generation_config,
-    }).encode("utf-8")
+    ultimo_erro = None
 
-    dados = None
-    for tentativa in range(3):
-        req = urllib.request.Request(
-            url, data=corpo,
-            headers={"Content-Type": "application/json", "x-goog-api-key": chave},
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=60) as r:
-                dados = json.loads(r.read())
-            break
-        except urllib.error.HTTPError as e:
-            detalhe = e.read()[:1500]
-            # Se o modelo recusar thinkingConfig, tenta sem ele
-            if e.code == 400 and b"thinkingConfig" in detalhe:
-                generation_config.pop("thinkingConfig", None)
-                corpo = json.dumps({
-                    "contents": [{"parts": partes}],
-                    "generationConfig": generation_config,
-                }).encode("utf-8")
-                continue
-            if e.code in (400, 401, 403, 404):
-                texto_erro = detalhe.decode("utf-8", "replace").replace("\n", " ")
-                raise ErroFatalIA(f"Gemini HTTP {e.code} (modelo '{modelo}'): {texto_erro}")
-            if e.code == 429:
-                if b"per day" in detalhe.lower() or b"perday" in detalhe.lower():
-                    raise CotaEsgotada("limite diário da IA atingido (volta amanhã)")
-                time.sleep(20)
-                continue
-            if e.code in (500, 503) and tentativa < 2:
-                time.sleep(10 * (tentativa + 1))
-                continue
-            raise RuntimeError(f"Gemini HTTP {e.code}: {detalhe!r}")
-        except (TimeoutError, urllib.error.URLError, ConnectionError) as e:
-            if tentativa < 2:
-                time.sleep(5 * (tentativa + 1))
-                continue
-            raise RuntimeError(f"Sem resposta da IA: {str(e)[:150]}")
+    for modelo in modelos:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
+        generation_config = {
+            "temperature": 0,
+            "responseMimeType": "application/json",
+            "thinkingConfig": {"thinkingBudget": 0}
+        }
+        corpo = json.dumps({
+            "contents": [{"parts": partes}],
+            "generationConfig": generation_config,
+        }).encode("utf-8")
 
-    try:
-        texto = dados["candidates"][0]["content"]["parts"][0]["text"]
-    except (KeyError, IndexError, TypeError):
-        raise RuntimeError(f"Resposta sem conteúdo da IA: {str(dados)[:300]}")
-    return json.loads(texto)
+        for tentativa in range(3):
+            req = urllib.request.Request(
+                url, data=corpo,
+                headers={"Content-Type": "application/json", "x-goog-api-key": chave},
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=60) as r:
+                    dados = json.loads(r.read())
+                texto = dados["candidates"][0]["content"]["parts"][0]["text"]
+                return json.loads(texto)
+            except urllib.error.HTTPError as e:
+                detalhe = e.read()[:1500]
+                if e.code == 400 and b"thinkingConfig" in detalhe:
+                    generation_config.pop("thinkingConfig", None)
+                    corpo = json.dumps({
+                        "contents": [{"parts": partes}],
+                        "generationConfig": generation_config,
+                    }).encode("utf-8")
+                    continue
+                if e.code == 503:
+                    log(f"  ! {modelo} em alta demanda (HTTP 503). Alternando modelo...")
+                    break  # Sai do retry e vai para o próximo modelo da lista
+                if e.code == 429:
+                    if b"per day" in detalhe.lower() or b"perday" in detalhe.lower():
+                        log(f"  ! Cota diária atingida em {modelo}. Alternando modelo...")
+                        break  # Tenta outro modelo que possui cota própria
+                    time.sleep(15)
+                    continue
+                if e.code in (400, 401, 403, 404):
+                    texto_erro = detalhe.decode("utf-8", "replace").replace("\n", " ")
+                    raise ErroFatalIA(f"Gemini HTTP {e.code} ({modelo}): {texto_erro}")
+                ultimo_erro = f"HTTP {e.code}: {detalhe!r}"
+            except (TimeoutError, urllib.error.URLError, ConnectionError) as e:
+                if tentativa < 2:
+                    time.sleep(5)
+                    continue
+                ultimo_erro = str(e)
+
+    raise CotaEsgotada(f"Modelos da IA indisponíveis ou cotas esgotadas: {ultimo_erro}")
 
 
 def converter_preco(v):
@@ -487,7 +488,7 @@ def coletar_loja(page, loja, estado, run, hoje):
             break
     enviar_lote()
 
-    # 3) Plano B: prints da página (só se não achou texto nem imagens)
+    # 3) Plano B: prints da página
     if not tem_texto and (not imagens or (novas and baixadas == 0)):
         if len(texto.strip()) > 300:
             ofertas += [(p, v, url) for p, v in ler_telas(page, nome, url, run, lidos, hoje)]
