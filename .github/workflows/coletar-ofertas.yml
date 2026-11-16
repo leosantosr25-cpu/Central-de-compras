@@ -31,11 +31,11 @@ jobs:
       - name: Instalar navegador do Playwright
         run: python -m playwright install --with-deps chromium
 
-      - name: Coletar ofertas
+           - name: Coletar ofertas
         run: python coletor/coletar.py
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-2.0-flash' }}
 
       - name: Salvar resultados no repositório
         if: always()
