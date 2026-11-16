@@ -1,9 +1,9 @@
 {
- "quando": "2026-11-16T13:36:34-03:00",
- "chamadas_ia": 1,
+ "quando": "2026-11-16T14:10:22-03:00",
+ "chamadas_ia": 3,
  "limite_atingido": false,
  "parou_por_tempo": false,
- "erro_ia": "Gemini HTTP 404 (modelo 'gemini-2.0-flash'): {   \"error\": {     \"code\": 404,     \"message\": \"This model models/gemini-2.0-flash is no longer available. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).\",     \"status\": \"NOT_FOUND\"   } } ",
+ "erro_ia": "",
  "ofertas_novas": 0,
  "lojas": {
   "Tatico": {
