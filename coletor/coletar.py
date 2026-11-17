@@ -3,10 +3,11 @@
 """
 Coletor de ofertas dos supermercados (roda no GitHub Actions, de graça).
 
-Melhorias aplicadas:
-  1. Interceptação de respostas de rede no Playwright -> imagens do Assaí sem 403 e sem erro de print.
-  2. Abertura do encarte completo do Tatico com URL absoluta.
-  3. Suporte resiliente a instabilidades da IA com fallback automático.
+Melhorias finais aplicadas:
+  1. Rolagem segura (JS_ROLAR) imune a document.body nulo (resolve Tatico).
+  2. Screenshot seguro sem erro de corte de tela (resolve Assaí).
+  3. Interceptação de imagens da rede e folheto completo.
+  4. Fallback automático de IA contra cotas e erros 503.
 """
 import base64
 import csv
@@ -119,10 +120,12 @@ JS_IMAGENS = r"""
 JS_ROLAR = """
 async () => {
   const esperar = (ms) => new Promise(r => setTimeout(r, ms));
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 25; i++) {
+    const el = document.scrollingElement || document.documentElement || document.body;
+    if (!el) break;
     window.scrollBy(0, 800);
     await esperar(200);
-    if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 10) break;
+    if (window.innerHeight + window.scrollY >= el.scrollHeight - 10) break;
   }
   await esperar(1000);
   window.scrollTo(0, 0);
@@ -357,30 +360,15 @@ def ler_telas(page, nome, url, run, lidos, hoje):
     if chave in lidos:
         return []
     try:
-        altura = int(page.evaluate("document.documentElement.scrollHeight || document.body.scrollHeight || 0"))
-    except Exception:
-        return []
-    if altura < 400:
-        return []
-    achados, completo = [], True
-    for y in range(0, min(altura, 7200), 2400):
-        h = min(2400, altura - y)
-        if h <= 100:
-            continue
-        try:
-            png = page.screenshot(clip={"x": 0, "y": y, "width": VIEW_W, "height": h},
-                                  type="jpeg", quality=75)
-            res = ler_com_ia([{"text": PROMPT}, parte_imagem("image/jpeg", png)], run)
-        except Exception as e:
-            log(f"  ! leitura do print: {str(e)[:150]}")
-            res = None
-        if res is None:
-            completo = False
-            break
-        achados += res
-    if completo and achados:
-        lidos[chave] = hoje
-    return achados
+        # Tira print direto da tela visível (sem erro de corte)
+        png = page.screenshot(type="jpeg", quality=75)
+        res = ler_com_ia([{"text": PROMPT}, parte_imagem("image/jpeg", png)], run)
+        if res:
+            lidos[chave] = hoje
+            return res
+    except Exception as e:
+        log(f"  ! leitura do print: {str(e)[:150]}")
+    return []
 
 
 def coletar_loja(page, loja, estado, run, hoje):
@@ -390,7 +378,7 @@ def coletar_loja(page, loja, estado, run, hoje):
     ofertas = []
     chamadas_antes = run["chamadas"]
 
-    # Intercepta as imagens que o navegador carregar da rede (garante Assaí)
+    # Intercepta as imagens da rede
     cache_rede = {}
     def salvar_resposta(res):
         try:
@@ -416,7 +404,7 @@ def coletar_loja(page, loja, estado, run, hoje):
     texto = page.inner_text("body")
     imagens = page.evaluate(JS_IMAGENS)
 
-    # Se a página foi barrada pelo Cloudflare (< 300 chars), usa folhetos alternativos
+    # Se a página principal foi bloqueada pelo Cloudflare (< 300 chars), usa folhetos alternativos
     if len(texto.strip()) < 300 and not imagens and loja.get("url_fallback"):
         log(f"  ! Site principal bloqueado ({len(texto.strip())} chars). Acessando folhetos alternativos...")
         try:
@@ -492,7 +480,7 @@ def coletar_loja(page, loja, estado, run, hoje):
             return "falha"
         if res is None:
             return "falha"
-        if res:  # Só grava no cache se encontrou ofertas de verdade
+        if res:
             for u in urls_lote:
                 lidos["img:" + u] = hoje
         resumo["imagens_lidas"] += len(urls_lote)
