@@ -24,11 +24,6 @@
 <body class="bg-slate-50 text-slate-800 antialiased pb-24 md:pb-12">
     <div id="root"></div>
 
-    <!-- =====================================================================
-         BACKEND: nuvem (Firebase) ou modo local (localStorage)
-         Cole abaixo o firebaseConfig do seu projeto. Enquanto estiver com
-         "COLE_AQUI", o painel funciona em MODO LOCAL (sem sincronizar).
-         ===================================================================== -->
     <script>
         (function () {
             var firebaseConfig = {
@@ -39,7 +34,7 @@
             };
 
             var cloudOk = !!firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf('COLE') !== 0;
-            var limpar = function (obj) { return JSON.parse(JSON.stringify(obj)); }; // remove undefined (Firestore não aceita)
+            var limpar = function (obj) { return JSON.parse(JSON.stringify(obj)); };
 
             if (cloudOk) {
                 try {
@@ -127,7 +122,6 @@
         const { useState, useEffect, useMemo } = React;
         const CB = window.CloudBackend;
 
-        // ---------- Ícones (SVG embutidos: não dependem de biblioteca externa) ----------
         const ICONS = {
             'home': '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
             'package': '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
@@ -160,7 +154,6 @@
             );
         }
 
-        // ---------- Dados base ----------
         const INITIAL_CATEGORIES = [
             'Arroz e grãos', 'Massas', 'Mercearia', 'Biscoitos e snacks', 'Carnes', 'Frutas',
             'Verduras e legumes', 'Laticínios', 'Bebidas', 'Padaria', 'Congelados', 'Enlatados',
@@ -175,7 +168,6 @@
             'Outro'
         ];
 
-        // Catálogo de itens básicos de casa: [nome, unidade, quantidade padrão de compra, estoque mínimo]
         const CATALOGO = {
             'Arroz e grãos': [
                 ['Arroz branco 5kg', 'pacote', 1, 1], ['Arroz integral 1kg', 'pacote', 1, 1], ['Feijão carioca 1kg', 'pacote', 2, 1],
@@ -275,14 +267,13 @@
             ]
         };
 
-        // ---------- Funções utilitárias ----------
         const fmtLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const hojeISO = () => fmtLocal(new Date());
         const normalizar = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
         const slug = (s) => normalizar(s).replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
         const dinheiro = (v) => Number(v || 0).toFixed(2);
 
-        function comprimirImagem(file, maxWidth = 420, quality = 0.72) {
+        function comprimirImagem(file, maxWidth = 1200, quality = 0.8) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = (event) => {
@@ -345,7 +336,7 @@
             const [abaAtiva, setAbaAtiva] = useState('inicio');
             const [modalProduto, setModalProduto] = useState(null);
             const [modalCatalogo, setModalCatalogo] = useState(false);
-            const [modalCompra, setModalCompra] = useState(false);
+            const [modalCompra, setModalCompra] = useState(null); // null, true (nova compra), ou objeto (compra para editar)
             const [modalConsumo, setModalConsumo] = useState(null);
             const [modalDetalheCompra, setModalDetalheCompra] = useState(null);
             const [modalBuscaGlobal, setModalBuscaGlobal] = useState(false);
@@ -360,7 +351,6 @@
                 setTimeout(() => setToast(null), 3500);
             };
 
-            // ---- Autenticação ----
             useEffect(() => {
                 return CB.onAuthChange((u) => {
                     setUser(u || null);
@@ -369,7 +359,6 @@
                 });
             }, []);
 
-            // ---- Escuta as coleções em tempo real ----
             useEffect(() => {
                 if (!uid) return;
                 setLoading(true);
@@ -404,7 +393,6 @@
                 return () => unsubs.forEach(u => u());
             }, [uid]);
 
-            // ---- Métricas ----
             const produtosComEstoque = useMemo(() => {
                 return produtos.map(p => {
                     const lotes = lotesValidade.filter(l => l.product_id === p.id);
@@ -474,7 +462,6 @@
                 return { total, itensBase };
             }, [itensAbaixoMinimo, historicoPrecos]);
 
-            // ---- Ações ----
             const executar = async (fn, erroMsg = 'Não foi possível concluir a operação.') => {
                 try { await fn(); return true; }
                 catch (err) { console.error(err); mostrarToast(erroMsg, 'erro'); return false; }
@@ -557,50 +544,9 @@
                 }, 'Erro ao adicionar itens do catálogo.');
             };
 
-            const carregarDadosDemonstracao = () => executar(async () => {
-                const hoje = new Date();
-                const dia = (delta) => { const d = new Date(hoje); d.setDate(hoje.getDate() + delta); return fmtLocal(d); };
-                const prods = [
-                    { id: 'demo_1', name: 'Arroz Tio João 5kg', category: 'Arroz e grãos', brand: 'Tio João', unit: 'pacote', default_quantity: 2, minimum_stock: 2 },
-                    { id: 'demo_2', name: 'Café Pilão 500g', category: 'Bebidas', brand: 'Pilão', unit: 'pacote', default_quantity: 2, minimum_stock: 1 },
-                    { id: 'demo_3', name: 'Leite Integral 1L', category: 'Laticínios', brand: 'Italac', unit: 'L', default_quantity: 12, minimum_stock: 4 },
-                    { id: 'demo_4', name: 'Detergente Ypê 500ml', category: 'Produtos de limpeza', brand: 'Ypê', unit: 'unidade', default_quantity: 4, minimum_stock: 2 }
-                ];
-                for (const p of prods) await CB.saveDoc('products', p.id, { ...p, notes: 'Dados de demonstração', image_url: '', is_demo: true });
-                await CB.saveDoc('product_expiration', 'demo_lote_1', { product_id: 'demo_1', quantity: 1, expiration_date: dia(180), is_demo: true });
-                await CB.saveDoc('product_expiration', 'demo_lote_2', { product_id: 'demo_3', quantity: 3, expiration_date: dia(3), is_demo: true });
-                await CB.saveDoc('price_history', 'demo_ph_1', { product_id: 'demo_2', product_name: 'Café Pilão 500g', price: 21.9, date: dia(-15), source: 'Supermercado Tatico', is_demo: true });
-                await CB.saveDoc('price_history', 'demo_ph_2', { product_id: 'demo_2', product_name: 'Café Pilão 500g', price: 17.5, date: dia(-2), source: 'Supermercado Assaí Independência', is_demo: true });
-                await CB.saveDoc('price_history', 'demo_ph_3', { product_id: 'demo_1', product_name: 'Arroz Tio João 5kg', price: 28.9, date: dia(-2), source: 'Supermercado Costa Atacadão', is_demo: true });
-                await CB.saveDoc('purchases', 'demo_comp_1', {
-                    purchase_date: dia(-2), notes: 'Supermercado Assaí Independência', total: 94.8, is_demo: true,
-                    purchase_items: [
-                        { product_id: 'demo_2', product_name: 'Café Pilão 500g', quantity: 2, unit_price: 17.5, total_price: 35 },
-                        { product_id: 'demo_3', product_name: 'Leite Integral 1L', quantity: 12, unit_price: 4.98, total_price: 59.8 }
-                    ]
-                });
-                mostrarToast('Exemplos carregados!');
-            });
-
-            const limparDadosDemonstracao = () => executar(async () => {
-                const idsDemo = new Set(produtos.filter(p => p.is_demo).map(p => p.id));
-                const ehDemo = (i) => i.is_demo || (i.product_id && idsDemo.has(i.product_id));
-                const grupos = [
-                    ['products', produtos], ['product_expiration', lotesValidade], ['price_history', historicoPrecos],
-                    ['purchases', compras], ['consumption', consumos], ['shopping_list', listaCompras]
-                ];
-                for (const [nome, lista] of grupos) {
-                    for (const item of lista.filter(ehDemo)) await CB.removeDoc(nome, item.id);
-                }
-                mostrarToast('Exemplos removidos.');
-            });
-
             const sair = () => { if (confirm('Sair da sua conta neste aparelho?')) CB.signOut(); };
 
-            // ---- Telas de estado ----
-            if (!authPronto) {
-                return <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">Carregando...</div>;
-            }
+            if (!authPronto) return <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">Carregando...</div>;
 
             if (!user) {
                 return (
@@ -642,7 +588,6 @@
                 );
             }
 
-            const temDemo = produtos.some(p => p.is_demo);
             const modoLocal = CB.mode === 'local';
             const saudacao = (() => { const h = new Date().getHours(); return h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'; })();
 
@@ -706,38 +651,6 @@
                             </div>
                         </div>
                     </header>
-
-                    {modoLocal && (
-                        <div className="max-w-6xl mx-auto px-4 pt-4">
-                            <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2.5 text-xs text-amber-800">
-                                💾 <strong>Modo local:</strong> os dados ficam só neste navegador. Para sincronizar entre aparelhos, preencha o <code>firebaseConfig</code> no início do arquivo.
-                            </div>
-                        </div>
-                    )}
-
-                    {produtos.length === 0 && (
-                        <div className="max-w-6xl mx-auto px-4 pt-4">
-                            <div className="bg-violet-100 border border-violet-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                                <div className="text-xs text-violet-900">
-                                    <strong>Sua despensa está vazia!</strong> Adicione de uma vez os itens que sua casa costuma consumir (sabonete, macarrão, miojo, bolacha recheada...) ou cadastre um por um.
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    <button onClick={() => setModalCatalogo(true)} className="bg-violet-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm">📋 Catálogo de itens básicos</button>
-                                    <button onClick={() => setModalProduto(true)} className="bg-white text-violet-800 border border-violet-300 px-3.5 py-2 rounded-xl text-xs font-bold">+ Cadastrar produto</button>
-                                    <button onClick={carregarDadosDemonstracao} className="bg-white text-violet-800 border border-violet-300 px-3.5 py-2 rounded-xl text-xs font-bold">Carregar exemplos</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {temDemo && (
-                        <div className="max-w-6xl mx-auto px-4 pt-4">
-                            <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3 text-xs text-amber-800">
-                                <span>ℹ️ Você tem <strong>dados de demonstração</strong> cadastrados.</span>
-                                <button onClick={limparDadosDemonstracao} className="font-bold underline hover:text-amber-950 whitespace-nowrap">Limpar exemplos</button>
-                            </div>
-                        </div>
-                    )}
 
                     <main className="max-w-6xl mx-auto px-4 py-6">
                         {abaAtiva === 'inicio' && (
@@ -825,12 +738,18 @@
 
                     {modalCompra && (
                         <ModalCompra
+                            compraParaEditar={typeof modalCompra === 'object' ? modalCompra : null}
                             produtos={produtos}
+                            lotesValidade={lotesValidade}
                             historicoPrecos={historicoPrecos}
                             listaCompras={listaCompras}
                             establishments={INITIAL_ESTABLISHMENTS}
-                            onClose={() => setModalCompra(false)}
-                            onSalvo={() => { setModalCompra(false); mostrarToast('Compra salva e estoque atualizado!'); }}
+                            onClose={() => setModalCompra(null)}
+                            onSalvo={() => {
+                                const editando = typeof modalCompra === 'object';
+                                setModalCompra(null);
+                                mostrarToast(editando ? 'Compra atualizada com sucesso!' : 'Compra salva e estoque atualizado!');
+                            }}
                             onNovoProduto={() => setModalProduto(true)}
                             onCatalogo={() => setModalCatalogo(true)}
                             mostrarToast={mostrarToast}
@@ -848,7 +767,15 @@
                     )}
 
                     {modalDetalheCompra && (
-                        <ModalDetalheCompra compra={modalDetalheCompra} onClose={() => setModalDetalheCompra(null)} onExcluir={() => excluirCompra(modalDetalheCompra)} />
+                        <ModalDetalheCompra
+                            compra={modalDetalheCompra}
+                            onClose={() => setModalDetalheCompra(null)}
+                            onExcluir={() => excluirCompra(modalDetalheCompra)}
+                            onEditar={(c) => {
+                                setModalDetalheCompra(null);
+                                setModalCompra(c);
+                            }}
+                        />
                     )}
 
                     {modalBuscaGlobal && (
@@ -891,7 +818,6 @@
             );
         }
 
-        // ---------- Navegação ----------
         function NavBtn({ ativo, onClick, icon, label, badge }) {
             return (
                 <button onClick={onClick} className={`flex flex-col items-center relative py-1.5 px-2.5 rounded-xl transition ${ativo ? 'text-violet-700 font-bold' : 'text-slate-400 hover:text-slate-600'}`}>
@@ -912,7 +838,6 @@
             );
         }
 
-        // ---------- Dashboard ----------
         function Dashboard({ saudacao, produtosComEstoque, itensAbaixoMinimo, metricasGasto, estimativaProximaSemana, ofertas, pendentesLista, setAbaAtiva, onNovaCompra, onNovoProduto, onConsumir, onFotoAmpliada }) {
             const qtdAcabando = itensAbaixoMinimo.filter(p => p.stockTotal > 0).length;
             const qtdAcabados = itensAbaixoMinimo.filter(p => p.stockTotal <= 0).length;
@@ -1034,7 +959,6 @@
             );
         }
 
-        // ---------- Produtos ----------
         function ProdutosView({ produtosComEstoque, onNovoProduto, onCatalogo, onEditarProduto, onExcluirProduto, onFotoAmpliada }) {
             const [busca, setBusca] = useState('');
             const [catFiltro, setCatFiltro] = useState('Todas');
@@ -1105,7 +1029,6 @@
             );
         }
 
-        // ---------- Estoque & Validade ----------
         function EstoqueView({ produtosComEstoque, onConsumir, onAjusteRapido, onAdicionarLote, onDescartarVencido, onFotoAmpliada }) {
             const [filtro, setFiltro] = useState('todos');
             const [modalLoteProd, setModalLoteProd] = useState(null);
@@ -1221,7 +1144,6 @@
             );
         }
 
-        // ---------- Compras ----------
         function ComprasView({ compras, onNovaCompra, onVerDetalhes }) {
             return (
                 <div className="space-y-6">
@@ -1254,7 +1176,6 @@
             );
         }
 
-        // ---------- Lista de compras ----------
         function ListaComprasView({ listaCompras, itensAbaixoMinimo, onComprar, executar, mostrarToast }) {
             const [novoItem, setNovoItem] = useState('');
 
@@ -1343,7 +1264,6 @@
             );
         }
 
-        // ---------- Ofertas ----------
         function OfertasView({ ofertas, onFotoAmpliada }) {
             const [mercadoFiltro, setMercadoFiltro] = useState('Todos');
             const filtradas = ofertas.filter(o => mercadoFiltro === 'Todos' || o.estabelecimento === mercadoFiltro);
@@ -1399,7 +1319,6 @@
             );
         }
 
-        // ---------- Preços ----------
         function PrecosView({ historicoPrecos }) {
             const [busca, setBusca] = useState('');
 
@@ -1456,7 +1375,6 @@
             );
         }
 
-        // ---------- Gastos ----------
         function GastosView({ compras, metricasGasto, estimativaProximaSemana }) {
             const porMercado = useMemo(() => {
                 const map = {};
@@ -1504,7 +1422,6 @@
             );
         }
 
-        // ---------- Relatórios ----------
         function RelatoriosView({ produtosComEstoque, consumos }) {
             const topConsumidos = useMemo(() => {
                 const map = {};
@@ -1561,7 +1478,6 @@
             );
         }
 
-        // ---------- Modal: catálogo de itens básicos ----------
         function ModalCatalogo({ produtos, onClose, onAdicionar }) {
             const [busca, setBusca] = useState('');
             const [selecionados, setSelecionados] = useState({});
@@ -1660,7 +1576,6 @@
             );
         }
 
-        // ---------- Modal: produto (com foto) ----------
         function ModalProduto({ produto, categories, onClose, onSalvo, mostrarToast }) {
             const novo = !produto;
             const [name, setName] = useState(produto ? produto.name : '');
@@ -1681,7 +1596,7 @@
                 if (!file) return;
                 setProcessandoFoto(true);
                 try {
-                    setImageUrl(await comprimirImagem(file));
+                    setImageUrl(await comprimirImagem(file, 420, 0.72));
                 } catch (err) {
                     mostrarToast('Erro ao processar a imagem.', 'erro');
                 } finally {
@@ -1797,13 +1712,36 @@
             );
         }
 
-        // ---------- Modal: compra ----------
-        function ModalCompra({ produtos, historicoPrecos, listaCompras, establishments, onClose, onSalvo, onNovoProduto, onCatalogo, mostrarToast }) {
+        // ---------- Modal: Compra (Com Leitor de Nota Fiscal por IA e Edição) ----------
+        function ModalCompra({ compraParaEditar, produtos, lotesValidade, historicoPrecos, listaCompras, establishments, onClose, onSalvo, onNovoProduto, onCatalogo, mostrarToast }) {
+            const editando = Boolean(compraParaEditar && compraParaEditar.id);
             const itemVazio = () => ({ productId: '', quantity: 1, unitPrice: 0, expirationDate: '' });
-            const [establishment, setEstablishment] = useState(establishments[0]);
-            const [purchaseDate, setPurchaseDate] = useState(hojeISO());
-            const [itens, setItens] = useState([itemVazio()]);
+
+            const [establishment, setEstablishment] = useState(() => {
+                if (!compraParaEditar) return establishments[0];
+                const achado = establishments.find(e => e === compraParaEditar.notes);
+                return achado ? achado : 'Outro';
+            });
+            const [customEstablishment, setCustomEstablishment] = useState(() => {
+                if (!compraParaEditar) return '';
+                const achado = establishments.find(e => e === compraParaEditar.notes);
+                return achado ? '' : (compraParaEditar.notes || '');
+            });
+            const [purchaseDate, setPurchaseDate] = useState(() => (compraParaEditar && compraParaEditar.purchase_date) || hojeISO());
+            const [itens, setItens] = useState(() => {
+                if (compraParaEditar && compraParaEditar.purchase_items && compraParaEditar.purchase_items.length > 0) {
+                    return compraParaEditar.purchase_items.map(it => ({
+                        productId: it.product_id,
+                        quantity: it.quantity,
+                        unitPrice: it.unit_price,
+                        expirationDate: it.expiration_date || ''
+                    }));
+                }
+                return [itemVazio()];
+            });
+
             const [salvando, setSalvando] = useState(false);
+            const [lendoNota, setLendoNota] = useState(false);
 
             const totalNota = itens.reduce((acc, i) => acc + (Number(i.quantity || 0) * Number(i.unitPrice || 0)), 0);
 
@@ -1819,14 +1757,157 @@
                 });
             };
 
+            // ---- Leitor de Cupom Fiscal com IA (Gemini) ----
+            const handleFotoNota = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                let apiKey = localStorage.getItem('gemini_api_key') || '';
+                if (!apiKey) {
+                    apiKey = prompt('Digite sua chave GEMINI_API_KEY do Google AI Studio para ler cupons fiscais:') || '';
+                    if (apiKey.trim()) {
+                        apiKey = apiKey.trim();
+                        localStorage.setItem('gemini_api_key', apiKey);
+                        CB.saveDoc('settings', 'ia', { gemini_key: apiKey });
+                    } else {
+                        e.target.value = '';
+                        return;
+                    }
+                }
+
+                setLendoNota(true);
+                try {
+                    const dataUrl = await comprimirImagem(file, 1200, 0.85);
+                    const b64Data = dataUrl.split(',')[1];
+
+                    const promptTexto = (
+                        "Você lê cupons e notas fiscais de supermercados do Brasil. "
+                        "Extraia o nome do supermercado, a data da compra (AAAA-MM-DD) e a lista de produtos com quantidade e preço unitário. "
+                        "Responda ESTRITAMENTE em formato JSON com o seguinte formato: "
+                        '{"supermercado": "Nome do mercado", "data": "AAAA-MM-DD", "itens": [{"produto": "Nome legivel do item", "quantidade": 1, "preco_unitario": 10.50}]}. '
+                        "Se não encontrar o supermercado ou data, use strings vazias. Não invente produtos que não estejam na nota."
+                    );
+
+                    const corpoReq = {
+                        contents: [{
+                            parts: [
+                                { text: promptTexto },
+                                { inline_data: { mime_type: "image/jpeg", data: b64Data } }
+                            ]
+                        }],
+                        generationConfig: {
+                            temperature: 0,
+                            responseMimeType: "application/json"
+                        }
+                    };
+
+                    let resJson = null;
+                    const modelos = ['gemini-3.8-flash', 'gemini-3.5-flash-lite'];
+                    for (const mod of modelos) {
+                        try {
+                            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${mod}:generateContent?key=${apiKey}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(corpoReq)
+                            });
+                            if (!res.ok) throw new Error('HTTP ' + res.status);
+                            const jsonDados = await res.json();
+                            const textoIA = jsonDados.candidates[0].content.parts[0].text;
+                            resJson = JSON.parse(textoIA);
+                            break;
+                        } catch (err) {
+                            console.warn(`Falha no modelo ${mod}`, err);
+                        }
+                    }
+
+                    if (!resJson || !Array.isArray(resJson.itens) || resJson.itens.length === 0) {
+                        throw new Error('A IA não conseguiu identificar os itens da nota. Tente uma foto mais nítida.');
+                    }
+
+                    // Preenche o supermercado
+                    if (resJson.supermercado) {
+                        const achado = establishments.find(e => normalizar(e).includes(normalizar(resJson.supermercado)) || normalizar(resJson.supermercado).includes(normalizar(e)));
+                        if (achado && achado !== 'Outro') {
+                            setEstablishment(achado);
+                            setCustomEstablishment('');
+                        } else {
+                            setEstablishment('Outro');
+                            setCustomEstablishment(resJson.supermercado);
+                        }
+                    }
+
+                    // Preenche a data
+                    if (resJson.data && /^\d{4}-\d{2}-\d{2}$/.test(resJson.data)) {
+                        setPurchaseDate(resJson.data);
+                    }
+
+                    // Mapeia ou cadastra os produtos da nota
+                    const novosItensForm = [];
+                    for (const it of resJson.itens) {
+                        const nomeLimpo = (it.produto || '').trim();
+                        const precoUn = Number(it.preco_unitario || 0);
+                        const qtd = Number(it.quantidade || 1);
+                        if (!nomeLimpo || precoUn <= 0) continue;
+
+                        let prodEncontrado = produtos.find(p => normalizar(p.name) === normalizar(nomeLimpo));
+                        if (!prodEncontrado) {
+                            prodEncontrado = produtos.find(p => normalizar(p.name).includes(normalizar(nomeLimpo)) || normalizar(nomeLimpo).includes(normalizar(p.name)));
+                        }
+
+                        let pId = prodEncontrado ? prodEncontrado.id : null;
+                        if (!pId) {
+                            // Cadastra automaticamente o novo produto para agilizar sua vida
+                            pId = `prod_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+                            await CB.saveDoc('products', pId, {
+                                name: nomeLimpo, category: 'Outros', brand: '', unit: 'unidade',
+                                default_quantity: 1, minimum_stock: 1, image_url: '', notes: 'Cadastrado via Cupom Fiscal', is_demo: false
+                            });
+                        }
+
+                        novosItensForm.push({
+                            productId: pId,
+                            quantity: qtd > 0 ? qtd : 1,
+                            unitPrice: precoUn,
+                            expirationDate: ''
+                        });
+                    }
+
+                    if (novosItensForm.length > 0) {
+                        setItens(novosItensForm);
+                        mostrarToast(`${novosItensForm.length} produto(s) preenchido(s) da nota fiscal!`);
+                    } else {
+                        mostrarToast('Nenhum item com preço legível foi encontrado.', 'erro');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    mostrarToast(err.message || 'Erro ao processar cupom com a IA.', 'erro');
+                } finally {
+                    setLendoNota(false);
+                    e.target.value = '';
+                }
+            };
+
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 const validos = itens.filter(i => i.productId && Number(i.quantity) > 0);
                 if (validos.length === 0) { mostrarToast('Escolha pelo menos um produto.', 'erro'); return; }
 
+                const nomeFinalMercado = (establishment === 'Outro' && customEstablishment.trim()) ? customEstablishment.trim() : establishment;
+
                 setSalvando(true);
                 try {
-                    const compraId = `comp_${Date.now()}`;
+                    const compraId = editando ? compraParaEditar.id : `comp_${Date.now()}`;
+
+                    // Se estiver editando, limpa os lotes e preços antigos desta compra para regravar atualizados
+                    if (editando) {
+                        for (const l of lotesValidade.filter(x => x.purchase_id === compraId)) {
+                            await CB.removeDoc('product_expiration', l.id);
+                        }
+                        for (const h of historicoPrecos.filter(x => x.purchase_id === compraId)) {
+                            await CB.removeDoc('price_history', h.id);
+                        }
+                    }
+
                     const itensFormatados = validos.map(item => {
                         const prodObj = produtos.find(p => p.id === item.productId);
                         return {
@@ -1841,7 +1922,7 @@
                     const total = Number(itensFormatados.reduce((a, i) => a + i.total_price, 0).toFixed(2));
 
                     await CB.saveDoc('purchases', compraId, {
-                        purchase_date: purchaseDate, total, notes: establishment, purchase_items: itensFormatados, is_demo: false
+                        purchase_date: purchaseDate, total, notes: nomeFinalMercado, purchase_items: itensFormatados, is_demo: false
                     });
 
                     for (let idx = 0; idx < itensFormatados.length; idx++) {
@@ -1853,12 +1934,11 @@
                         if (it.unit_price > 0) {
                             await CB.saveDoc('price_history', `ph_${compraId}_${idx}`, {
                                 product_id: it.product_id, product_name: it.product_name, price: it.unit_price,
-                                date: purchaseDate, source: establishment, purchase_id: compraId, is_demo: false
+                                date: purchaseDate, source: nomeFinalMercado, purchase_id: compraId, is_demo: false
                             });
                         }
                     }
 
-                    // Marca como comprados os itens da lista ligados a estes produtos
                     const idsComprados = new Set(itensFormatados.map(i => i.product_id));
                     for (const l of listaCompras.filter(x => !x.purchased && x.product_id && idsComprados.has(x.product_id))) {
                         await CB.saveDoc('shopping_list', l.id, { purchased: true });
@@ -1877,71 +1957,90 @@
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
                     <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl my-8 space-y-4">
                         <div className="flex flex-wrap justify-between items-center gap-2">
-                            <h3 className="text-base font-bold text-slate-800">🛒 Registrar nova compra</h3>
+                            <h3 className="text-base font-bold text-slate-800">
+                                {editando ? '✏️ Editar compra finalizada' : '🛒 Registrar nova compra'}
+                            </h3>
                             <div className="flex gap-2">
                                 <button type="button" onClick={onCatalogo} className="text-xs bg-violet-100 text-violet-800 font-bold px-3 py-1.5 rounded-xl">📋 Catálogo</button>
                                 <button type="button" onClick={onNovoProduto} className="text-xs bg-violet-100 text-violet-800 font-bold px-3 py-1.5 rounded-xl">+ Produto</button>
                             </div>
                         </div>
 
-                        {produtos.length === 0 ? (
-                            <div className="p-6 text-center space-y-3 bg-slate-50 rounded-2xl">
-                                <p className="text-xs text-slate-600">Cadastre pelo menos um produto antes de lançar uma compra.</p>
-                                <div className="flex justify-center gap-2">
-                                    <button type="button" onClick={onCatalogo} className="bg-violet-700 text-white px-4 py-2 rounded-xl text-xs font-bold">📋 Usar catálogo básico</button>
-                                    <button type="button" onClick={onNovoProduto} className="bg-white border border-violet-300 text-violet-800 px-4 py-2 rounded-xl text-xs font-bold">+ Cadastrar produto</button>
+                        {/* Banner de Leitura de Cupom Fiscal com IA */}
+                        <div className="bg-gradient-to-r from-violet-700 via-purple-700 to-indigo-800 text-white p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                            <div className="flex items-center space-x-2.5">
+                                <span className="text-xl">🧾</span>
+                                <div>
+                                    <p className="text-xs font-bold">Preenchimento automático por foto</p>
+                                    <p className="text-[10px] text-purple-200">Envie a foto do cupom fiscal e a IA preenche tudo para você</p>
                                 </div>
-                                <button type="button" onClick={onClose} className="text-xs text-slate-500">Fechar</button>
                             </div>
-                        ) : (
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-xs font-semibold mb-1">Supermercado / local</label>
-                                        <select value={establishment} onChange={e => setEstablishment(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs">
-                                            {establishments.map(est => <option key={est} value={est}>{est}</option>)}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold mb-1">Data da compra</label>
-                                        <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs" required />
-                                    </div>
-                                </div>
+                            <label className="bg-white text-violet-800 hover:bg-purple-50 text-xs font-bold px-3.5 py-2 rounded-xl cursor-pointer shadow transition flex items-center justify-center space-x-1.5 whitespace-nowrap">
+                                <Icon name="camera" className="w-3.5 h-3.5" />
+                                <span>{lendoNota ? 'Lendo cupom...' : 'Foto da Nota'}</span>
+                                <input type="file" accept="image/*" capture="environment" onChange={handleFotoNota} disabled={lendoNota} className="hidden" />
+                            </label>
+                        </div>
+                        {lendoNota && <p className="text-xs text-violet-700 font-bold animate-pulse text-center">⏳ Analisando itens e preços da sua nota fiscal...</p>}
 
-                                <div className="border-t pt-3">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <h4 className="text-xs font-bold text-slate-700">Itens da compra</h4>
-                                        <span className="text-sm font-bold text-violet-800">Total: R$ {dinheiro(totalNota)}</span>
-                                    </div>
-                                    <div className="space-y-2.5 max-h-64 overflow-y-auto">
-                                        {itens.map((item, idx) => (
-                                            <div key={idx} className="flex flex-wrap sm:flex-nowrap gap-2 items-center bg-slate-50 p-3 rounded-2xl">
-                                                <select value={item.productId} onChange={e => escolherProduto(idx, e.target.value)} className="w-full sm:flex-1 border rounded-xl px-2.5 py-2 text-xs bg-white">
-                                                    <option value="">Selecione o produto...</option>
-                                                    {produtos.map(p => <option key={p.id} value={p.id}>{p.name} ({p.unit})</option>)}
-                                                </select>
-                                                <input type="number" step="0.01" min="0.01" placeholder="Qtd" value={item.quantity} onChange={e => atualizar(idx, { quantity: e.target.value })} className="w-20 border rounded-xl px-2 py-2 text-xs bg-white" title="Quantidade" />
-                                                <input type="number" step="0.01" min="0" placeholder="R$ un." value={item.unitPrice} onChange={e => atualizar(idx, { unitPrice: e.target.value })} className="w-24 border rounded-xl px-2 py-2 text-xs bg-white" title="Preço unitário" />
-                                                <input type="date" title="Validade (opcional)" value={item.expirationDate} onChange={e => atualizar(idx, { expirationDate: e.target.value })} className="w-32 border rounded-xl px-2 py-2 text-xs bg-white" />
-                                                {itens.length > 1 && <button type="button" onClick={() => setItens(itens.filter((_, i) => i !== idx))} className="text-rose-500 font-bold px-2">✕</button>}
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <button type="button" onClick={() => setItens([...itens, itemVazio()])} className="mt-2.5 text-xs text-violet-700 font-bold hover:underline">+ Adicionar outro item</button>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-semibold mb-1">Supermercado / local</label>
+                                    <select value={establishment} onChange={e => setEstablishment(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs">
+                                        {establishments.map(est => <option key={est} value={est}>{est}</option>)}
+                                    </select>
+                                    {establishment === 'Outro' && (
+                                        <input
+                                            type="text"
+                                            placeholder="Digite o nome do supermercado..."
+                                            value={customEstablishment}
+                                            onChange={e => setCustomEstablishment(e.target.value)}
+                                            className="w-full border border-violet-300 bg-violet-50/50 rounded-xl px-3 py-2 text-xs mt-2 font-semibold text-violet-900"
+                                            required
+                                        />
+                                    )}
                                 </div>
+                                <div>
+                                    <label className="block text-xs font-semibold mb-1">Data da compra</label>
+                                    <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} className="w-full border rounded-xl px-3 py-2 text-xs" required />
+                                </div>
+                            </div>
 
-                                <div className="flex justify-end space-x-2 pt-3 border-t">
-                                    <button type="button" onClick={onClose} className="px-4 py-2 text-xs text-slate-600">Cancelar</button>
-                                    <button type="submit" disabled={salvando} className="bg-violet-700 text-white px-5 py-2 rounded-xl text-xs font-bold disabled:opacity-50">{salvando ? 'Salvando...' : 'Confirmar compra'}</button>
+                            <div className="border-t pt-3">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h4 className="text-xs font-bold text-slate-700">Itens da compra</h4>
+                                    <span className="text-sm font-bold text-violet-800">Total: R$ {dinheiro(totalNota)}</span>
                                 </div>
-                            </form>
-                        )}
+                                <div className="space-y-2.5 max-h-64 overflow-y-auto">
+                                    {itens.map((item, idx) => (
+                                        <div key={idx} className="flex flex-wrap sm:flex-nowrap gap-2 items-center bg-slate-50 p-3 rounded-2xl">
+                                            <select value={item.productId} onChange={e => escolherProduto(idx, e.target.value)} className="w-full sm:flex-1 border rounded-xl px-2.5 py-2 text-xs bg-white">
+                                                <option value="">Selecione o produto...</option>
+                                                {produtos.map(p => <option key={p.id} value={p.id}>{p.name} ({p.unit})</option>)}
+                                            </select>
+                                            <input type="number" step="0.01" min="0.01" placeholder="Qtd" value={item.quantity} onChange={e => atualizar(idx, { quantity: e.target.value })} className="w-20 border rounded-xl px-2 py-2 text-xs bg-white" title="Quantidade" />
+                                            <input type="number" step="0.01" min="0" placeholder="R$ un." value={item.unitPrice} onChange={e => atualizar(idx, { unitPrice: e.target.value })} className="w-24 border rounded-xl px-2 py-2 text-xs bg-white" title="Preço unitário" />
+                                            <input type="date" title="Validade (opcional)" value={item.expirationDate} onChange={e => atualizar(idx, { expirationDate: e.target.value })} className="w-32 border rounded-xl px-2 py-2 text-xs bg-white" />
+                                            {itens.length > 1 && <button type="button" onClick={() => setItens(itens.filter((_, i) => i !== idx))} className="text-rose-500 font-bold px-2">✕</button>}
+                                        </div>
+                                    ))}
+                                </div>
+                                <button type="button" onClick={() => setItens([...itens, itemVazio()])} className="mt-2.5 text-xs text-violet-700 font-bold hover:underline">+ Adicionar outro item</button>
+                            </div>
+
+                            <div className="flex justify-end space-x-2 pt-3 border-t">
+                                <button type="button" onClick={onClose} className="px-4 py-2 text-xs text-slate-600">Cancelar</button>
+                                <button type="submit" disabled={salvando || lendoNota} className="bg-violet-700 text-white px-5 py-2 rounded-xl text-xs font-bold disabled:opacity-50">
+                                    {salvando ? 'Salvando...' : editando ? 'Salvar alterações' : 'Confirmar compra'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             );
         }
 
-        // ---------- Modal: consumo ----------
         function ModalConsumo({ produto, baixarDosLotes, onClose, onSalvo, mostrarToast }) {
             const [qtdConsumir, setQtdConsumir] = useState(1);
             const [salvando, setSalvando] = useState(false);
@@ -1989,8 +2088,8 @@
             );
         }
 
-        // ---------- Modal: detalhe da compra ----------
-        function ModalDetalheCompra({ compra, onClose, onExcluir }) {
+        // ---------- Modal: Detalhe da Compra com Edição ----------
+        function ModalDetalheCompra({ compra, onClose, onExcluir, onEditar }) {
             return (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
@@ -2011,15 +2110,15 @@
                             ))}
                         </div>
                         <div className="flex space-x-2 pt-2">
-                            <button onClick={onExcluir} className="flex-1 bg-rose-50 text-rose-700 py-2 rounded-xl text-xs font-bold">Excluir compra</button>
-                            <button onClick={onClose} className="flex-1 bg-slate-100 py-2 rounded-xl text-xs font-bold">Fechar</button>
+                            <button onClick={() => onEditar(compra)} className="flex-1 bg-violet-50 hover:bg-violet-100 text-violet-800 py-2.5 rounded-xl text-xs font-bold">✏️ Editar compra</button>
+                            <button onClick={onExcluir} className="px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 py-2.5 rounded-xl text-xs font-bold">Excluir</button>
+                            <button onClick={onClose} className="px-3 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-xl text-xs font-bold">Fechar</button>
                         </div>
                     </div>
                 </div>
             );
         }
 
-        // ---------- Modal: busca global ----------
         function ModalBuscaGlobal({ produtosComEstoque, historicoPrecos, onClose }) {
             const [termo, setTermo] = useState('');
             const t = normalizar(termo);
@@ -2054,8 +2153,15 @@
             );
         }
 
-        // ---------- Modal: configurações e backup ----------
         function ModalConfig({ user, modoLocal, dados, onClose, mostrarToast }) {
+            const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+
+            const salvarApiKey = () => {
+                localStorage.setItem('gemini_api_key', apiKey.trim());
+                CB.saveDoc('settings', 'ia', { gemini_key: apiKey.trim() });
+                mostrarToast('Chave da IA salva com sucesso!');
+            };
+
             const exportar = () => {
                 const blob = new Blob([JSON.stringify({ ...dados, versao: 'central-compras-v2', exportadoEm: new Date().toISOString() }, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
@@ -2096,6 +2202,22 @@
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
                         <h3 className="text-base font-bold text-slate-800">⚙️ Configurações e backup</h3>
+                        
+                        <div className="bg-slate-50 border p-3.5 rounded-2xl space-y-2">
+                            <label className="block text-xs font-bold text-slate-800">Chave GEMINI_API_KEY (Leitor de Cupom):</label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="password"
+                                    placeholder="AIzaSy..."
+                                    value={apiKey}
+                                    onChange={e => setApiKey(e.target.value)}
+                                    className="flex-1 border rounded-xl px-3 py-1.5 text-xs bg-white"
+                                />
+                                <button onClick={salvarApiKey} className="bg-violet-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold">Salvar</button>
+                            </div>
+                            <p className="text-[10px] text-slate-500">Usada para extrair os produtos e valores das fotos das suas notas fiscais.</p>
+                        </div>
+
                         {modoLocal ? (
                             <div className="bg-amber-50 border border-amber-200 p-3 rounded-2xl text-xs text-amber-800">
                                 <strong>Modo local:</strong> os dados ficam apenas neste navegador. Exporte backups com frequência ou configure o Firebase para sincronizar.
@@ -2118,14 +2240,10 @@
             );
         }
 
-        // ---------- Monitor de ofertas dos sites dos supermercados ----------
-        // Fluxo: um coletor (Google Apps Script) grava as ofertas numa planilha publicada como CSV.
-        // Este módulo lê o CSV ao abrir e a cada 30 min, grava os preços dos SEUS produtos no
-        // histórico de preços (alimentando a aba Ofertas) e lista tudo que foi encontrado.
         const MONITOR_INTERVALO_MS = 30 * 60 * 1000;
 
         function parseCsv(texto) {
-            const t = (texto || '').replace(/^﻿/, '');
+            const t = (texto || '').replace(/^/, '');
             const primeira = t.split(/\r?\n/)[0] || '';
             const sep = (primeira.match(/;/g) || []).length > (primeira.match(/,/g) || []).length ? ';' : ',';
             const linhas = [];
@@ -2170,7 +2288,6 @@
             return hojeISO();
         }
 
-        // "Tatico" -> "Supermercado Tatico" (mesmo nome usado no restante do painel)
         function nomeMercadoPadrao(nome) {
             const n = normalizar(nome);
             if (!n) return nome;
@@ -2178,7 +2295,6 @@
             return achado || nome.trim();
         }
 
-        // Colunas: data, supermercado, produto, preco [, link]. Com cabeçalho, a ordem não importa.
         function linhasParaOfertas(texto) {
             const linhas = parseCsv(texto);
             if (linhas.length === 0) return [];
@@ -2218,8 +2334,6 @@
                 .filter(t => t && !MONITOR_STOP.has(t));
         }
 
-        // Vincula o nome da oferta a um produto seu: todas as palavras do seu produto precisam
-        // aparecer na oferta, e elas devem ser pelo menos 40% do nome da oferta.
         function acharProdutoDaOferta(nomeOferta, produtos) {
             const tOf = tokensNome(nomeOferta);
             const setOf = new Set(tOf);
@@ -2248,7 +2362,6 @@
             const dadosRef = React.useRef({});
             dadosRef.current = { produtos, historicoPrecos };
 
-            // Grava no histórico os preços dos seus produtos (idempotente: mesmo id = mesmo registro)
             const processar = async (texto, mesclar) => {
                 const lista = linhasParaOfertas(texto);
                 const { produtos: prods, historicoPrecos: hist } = dadosRef.current;
@@ -2264,7 +2377,7 @@
                     const chave = `${prod.id}|${normalizar(o.mercado)}`;
                     const id = `site_${slug(o.mercado)}_${slug(o.produto)}_${o.data}`;
                     if (existentes.has(id)) { ultimoPreco[chave] = o.preco; continue; }
-                    if (ultimoPreco[chave] === o.preco) continue; // preço não mudou: não repete no histórico
+                    if (ultimoPreco[chave] === o.preco) continue;
                     await CB.saveDoc('price_history', id, {
                         product_id: prod.id, product_name: prod.name, price: o.preco,
                         date: o.data, source: o.mercado, from_site: true, is_demo: false
@@ -2277,7 +2390,6 @@
                 return { total: lista.length, gravados };
             };
 
-            // Link salvo (na nuvem ou no navegador, conforme o modo)
             useEffect(() => {
                 return CB.subscribeCollection('settings', (docs) => {
                     const d = docs.find(x => x.id === 'ofertas');
@@ -2287,7 +2399,6 @@
                 }, (e) => console.error(e));
             }, []);
 
-            // Leitura automática: ao abrir e a cada 30 minutos (mesmo com outra aba aberta)
             useEffect(() => {
                 if (!csvUrl) { setStatus('inativo'); return; }
                 let cancelado = false;
