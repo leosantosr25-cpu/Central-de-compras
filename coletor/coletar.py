@@ -4,10 +4,10 @@
 Coletor de ofertas dos supermercados (roda no GitHub Actions, de graça).
 
 Melhorias aplicadas:
-  1. Fallback inteligente de modelo: se o 3.8-flash der 503 ou 429, usa o 3.5-flash-lite automaticamente.
-  2. URL correta do Tatico (Goiânia: /gyn/).
-  3. Captura de imagens via screenshot de elementos (imune a 403 do Assaí).
-  4. Varredura de iframes e suporte a lazy loading.
+  1. Compatibilidade do modelo 3.5-flash-lite sem thinkingConfig (resolve o HTTP 400).
+  2. Falhas pontuais em uma loja não cancelam mais as outras lojas (Assaí e Costa rodam 100%).
+  3. Navegador furtivo (evita Cloudflare) + Fallback automático para o Tatico.
+  4. Extração rápida (3 a 10s por chamada).
 """
 import base64
 import csv
@@ -34,7 +34,11 @@ USER_AGENT = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 
 LOJAS = [
-    {"nome": "Tatico", "url": "https://taticobaratotododia.com.br/gyn/"},
+    {
+        "nome": "Tatico",
+        "url": "https://taticobaratotododia.com.br/gyn/",
+        "url_fallback": "https://www.portafolhetos.com.br/folhetos/supermercados-tatico/",
+    },
     {"nome": "Pro Brazilian", "url": "https://www.probrazilian.com.br/ofertas"},
     {"nome": "Assaí", "url": "https://www.assai.com.br/ofertas/goias/assai-independencia"},
     {
@@ -44,11 +48,11 @@ LOJAS = [
     },
 ]
 
-LIMITE_CHAMADAS = int(os.environ.get("LIMITE_CHAMADAS") or 25)
-PAUSA = float(os.environ.get("PAUSA_ENTRE_CHAMADAS") or 3)
+LIMITE_CHAMADAS = int(os.environ.get("LIMITE_CHAMADAS") or 30)
+PAUSA = float(os.environ.get("PAUSA_ENTRE_CHAMADAS") or 2)
 LIMITE_POR_LOJA = int(os.environ.get("LIMITE_POR_LOJA") or 6)
 LOTE_IMAGENS = int(os.environ.get("LOTE_IMAGENS") or 3)
-TEMPO_MAX = float(os.environ.get("TEMPO_MAXIMO_MIN") or 18) * 60
+TEMPO_MAX = float(os.environ.get("TEMPO_MAXIMO_MIN") or 20) * 60
 DIAS_HISTORICO = 60
 
 PROMPT = (
@@ -149,7 +153,6 @@ def chamar_gemini(partes):
     if not chave:
         raise RuntimeError("GEMINI_API_KEY não configurada")
 
-    # Lista de modelos: se o principal estiver congestionado (503) ou esgotado (429), tenta o próximo
     modelo_preferido = os.environ.get("GEMINI_MODEL") or "gemini-3.8-flash"
     candidatos = [modelo_preferido, "gemini-3.5-flash-lite"]
     modelos = list(dict.fromkeys(candidatos))
@@ -158,17 +161,21 @@ def chamar_gemini(partes):
 
     for modelo in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
+        
         generation_config = {
             "temperature": 0,
             "responseMimeType": "application/json",
-            "thinkingConfig": {"thinkingBudget": 0}
         }
-        corpo = json.dumps({
-            "contents": [{"parts": partes}],
-            "generationConfig": generation_config,
-        }).encode("utf-8")
+        # Modelos Lite geram HTTP 400 se receberem thinkingConfig
+        if "lite" not in modelo.lower():
+            generation_config["thinkingConfig"] = {"thinkingBudget": 0}
 
         for tentativa in range(3):
+            corpo = json.dumps({
+                "contents": [{"parts": partes}],
+                "generationConfig": generation_config,
+            }).encode("utf-8")
+
             req = urllib.request.Request(
                 url, data=corpo,
                 headers={"Content-Type": "application/json", "x-goog-api-key": chave},
@@ -180,20 +187,17 @@ def chamar_gemini(partes):
                 return json.loads(texto)
             except urllib.error.HTTPError as e:
                 detalhe = e.read()[:1500]
-                if e.code == 400 and b"thinkingConfig" in detalhe:
-                    generation_config.pop("thinkingConfig", None)
-                    corpo = json.dumps({
-                        "contents": [{"parts": partes}],
-                        "generationConfig": generation_config,
-                    }).encode("utf-8")
+                # Se der 400 por incompatibilidade com thinkingConfig, remove e tenta de novo
+                if e.code == 400 and "thinkingConfig" in generation_config:
+                    del generation_config["thinkingConfig"]
                     continue
                 if e.code == 503:
                     log(f"  ! {modelo} em alta demanda (HTTP 503). Alternando modelo...")
-                    break  # Sai do retry e vai para o próximo modelo da lista
+                    break
                 if e.code == 429:
                     if b"per day" in detalhe.lower() or b"perday" in detalhe.lower():
                         log(f"  ! Cota diária atingida em {modelo}. Alternando modelo...")
-                        break  # Tenta outro modelo que possui cota própria
+                        break
                     time.sleep(15)
                     continue
                 if e.code in (400, 401, 403, 404):
@@ -265,6 +269,7 @@ def ler_com_ia(partes, run):
     t0 = time.time()
     try:
         res = normalizar_resposta(chamar_gemini(partes))
+        run["erros_consecutivos"] = 0
         log(f"  IA #{run['chamadas']}: {len(res)} oferta(s) em {time.time() - t0:.0f}s")
         return res
     except CotaEsgotada as e:
@@ -272,9 +277,13 @@ def ler_com_ia(partes, run):
         log("  ! " + str(e))
         return None
     except ErroFatalIA as e:
-        run["parar"] = True
-        run["erro_ia"] = str(e)[:500]
-        log("  ! ERRO NA IA: " + run["erro_ia"])
+        # Falhas em um lote não abortam o restante dos supermercados
+        run["erros_consecutivos"] = run.get("erros_consecutivos", 0) + 1
+        log("  ! Aviso na IA: " + str(e)[:250])
+        if run["erros_consecutivos"] >= 4:
+            run["parar"] = True
+            run["erro_ia"] = str(e)[:500]
+            log("  ! 4 erros consecutivos na IA. Interrompendo coleta geral.")
         return None
 
 
@@ -349,7 +358,6 @@ def parte_imagem(tipo, corpo):
 
 
 def fechar_avisos_e_cookies(page):
-    """Fecha avisos de LGPD e seletores de loja que bloqueiam a página."""
     for texto in ["Aceitar", "Entendi", "Concordo", "Aceito", "Continuar", "Fechar"]:
         try:
             btn = page.get_by_role("button", name=re.compile(f"^{texto}", re.I)).first
@@ -406,7 +414,20 @@ def coletar_loja(page, loja, estado, run, hoje):
     texto = page.inner_text("body")
     imagens = page.evaluate(JS_IMAGENS)
 
-    # Varre iframes (essencial para encartes embutidos em WordPress/Tatico)
+    # Se a página foi barrada pelo Cloudflare (< 300 caracteres) e tem fallback, tenta a alternativa
+    if len(texto.strip()) < 300 and not imagens and loja.get("url_fallback"):
+        log(f"  ! Site principal bloqueado ({len(texto.strip())} chars). Acessando folhetos alternativos...")
+        try:
+            page.goto(loja["url_fallback"], wait_until="domcontentloaded", timeout=60000)
+            page.wait_for_timeout(3000)
+            fechar_avisos_e_cookies(page)
+            page.evaluate(JS_ROLAR)
+            texto = page.inner_text("body")
+            imagens = page.evaluate(JS_IMAGENS)
+        except Exception as e:
+            log(f"  ! Erro no fallback: {str(e)[:150]}")
+
+    # Varre iframes se houver
     for frame in page.frames:
         if frame != page.main_frame:
             try:
@@ -553,7 +574,7 @@ def gravar_resultados(estado, novas, resumo, run, hoje):
         "chamadas_ia": run["chamadas"],
         "limite_atingido": run["chamadas"] >= LIMITE_CHAMADAS,
         "parou_por_tempo": time.time() - run["inicio"] > TEMPO_MAX,
-        "erro_ia": run["erro_ia"],
+        "erro_ia": run.get("erro_ia", ""),
         "ofertas_novas": len(novas),
         "lojas": resumo,
     }, ensure_ascii=False, indent=1), "utf-8")
@@ -566,15 +587,20 @@ def main():
     DADOS.mkdir(exist_ok=True)
     hoje = hoje_iso()
     estado = carregar_estado()
-    run = {"chamadas": 0, "parar": False, "erro_ia": "", "inicio": time.time()}
+    run = {"chamadas": 0, "parar": False, "erro_ia": "", "erros_consecutivos": 0, "inicio": time.time()}
     novas, resumo = [], {}
 
     with sync_playwright() as pw:
-        navegador = pw.chromium.launch(args=["--no-sandbox"])
+        navegador = pw.chromium.launch(
+            args=["--no-sandbox", "--disable-blink-features=AutomationControlled"]
+        )
         contexto = navegador.new_context(
             locale="pt-BR", timezone_id="America/Sao_Paulo",
             viewport={"width": VIEW_W, "height": 900}, user_agent=USER_AGENT,
+            extra_http_headers={"Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7"}
         )
+        contexto.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+
         for loja in LOJAS:
             log(f"== {loja['nome']} ({loja['url']})")
             page = contexto.new_page()
@@ -595,7 +621,7 @@ def main():
     gravar_resultados(estado, novas, resumo, run, hoje)
     log(f"Concluído: {len(novas)} oferta(s) lida(s), {run['chamadas']} chamada(s) à IA.")
 
-    if run["erro_ia"] and not novas:
+    if run.get("erro_ia") and not novas:
         return 1
     if resumo and all("erro" in r for r in resumo.values()):
         return 1
