@@ -1780,13 +1780,11 @@
                     const dataUrl = await comprimirImagem(file, 1200, 0.85);
                     const b64Data = dataUrl.split(',')[1];
 
-                    const promptTexto = (
-                        "Você lê cupons e notas fiscais de supermercados do Brasil. "
-                        "Extraia o nome do supermercado, a data da compra (AAAA-MM-DD) e a lista de produtos com quantidade e preço unitário. "
-                        "Responda ESTRITAMENTE em formato JSON com o seguinte formato: "
-                        '{"supermercado": "Nome do mercado", "data": "AAAA-MM-DD", "itens": [{"produto": "Nome legivel do item", "quantidade": 1, "preco_unitario": 10.50}]}. '
-                        "Se não encontrar o supermercado ou data, use strings vazias. Não invente produtos que não estejam na nota."
-                    );
+                    const promptTexto = "Você lê cupons e notas fiscais de supermercados do Brasil. " +
+                        "Extraia o nome do supermercado, a data da compra (AAAA-MM-DD) e a lista de produtos com quantidade e preço unitário. " +
+                        "Responda ESTRITAMENTE em formato JSON com o seguinte formato: " +
+                        '{\"supermercado\": \"Nome do mercado\", \"data\": \"AAAA-MM-DD\", \"itens\": [{\"produto\": \"Nome legivel do item\", \"quantidade\": 1, \"preco_unitario\": 10.50}]}. ' +
+                        "Se não encontrar o supermercado ou data, use strings vazias. Não invente produtos que não estejam na nota.";
 
                     const corpoReq = {
                         contents: [{
