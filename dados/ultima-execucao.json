@@ -1,22 +1,22 @@
 {
- "quando": "2026-11-17T06:59:44-03:00",
- "chamadas_ia": 4,
+ "quando": "2026-11-17T14:33:51-03:00",
+ "chamadas_ia": 2,
  "limite_atingido": false,
  "parou_por_tempo": false,
- "erro_ia": "Gemini HTTP 400 (gemini-3.5-flash-lite): {   \"error\": {     \"code\": 400,     \"message\": \"Request contains an invalid argument.\",     \"status\": \"INVALID_ARGUMENT\"   } } ",
- "ofertas_novas": 20,
+ "erro_ia": "",
+ "ofertas_novas": 0,
  "lojas": {
   "Tatico": {
-   "imagens": 0,
-   "imagens_novas": 0,
-   "imagens_lidas": 0,
+   "imagens": 1,
+   "imagens_novas": 1,
+   "imagens_lidas": 1,
    "ofertas": 0
   },
   "Pro Brazilian": {
    "imagens": 20,
-   "imagens_novas": 20,
-   "imagens_lidas": 6,
-   "ofertas": 20
+   "imagens_novas": 14,
+   "imagens_lidas": 0,
+   "ofertas": 0
   },
   "Assaí": {
    "imagens": 3,
