@@ -1,34 +1,31 @@
 {
- "quando": "2026-11-17T14:33:51-03:00",
- "chamadas_ia": 2,
+ "quando": "2026-11-17T14:57:54-03:00",
+ "chamadas_ia": 13,
  "limite_atingido": false,
  "parou_por_tempo": false,
  "erro_ia": "",
- "ofertas_novas": 0,
+ "ofertas_novas": 210,
  "lojas": {
   "Tatico": {
    "imagens": 1,
-   "imagens_novas": 1,
-   "imagens_lidas": 1,
+   "imagens_novas": 0,
+   "imagens_lidas": 0,
    "ofertas": 0
   },
   "Pro Brazilian": {
    "imagens": 20,
    "imagens_novas": 14,
-   "imagens_lidas": 0,
-   "ofertas": 0
+   "imagens_lidas": 14,
+   "ofertas": 20
   },
   "Assaí": {
-   "imagens": 3,
-   "imagens_novas": 3,
-   "imagens_lidas": 0,
-   "ofertas": 0
+   "erro": "Page.screenshot: Clipped area is either empty or outside the resulting image\nCall log:\n  - taking page screenshot\n  - waiting for fonts to load...\n  - fonts loaded\n"
   },
   "Costa Atacadão": {
    "imagens": 36,
    "imagens_novas": 34,
-   "imagens_lidas": 0,
-   "ofertas": 0
+   "imagens_lidas": 16,
+   "ofertas": 190
   }
  }
 }
