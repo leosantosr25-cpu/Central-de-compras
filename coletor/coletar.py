@@ -4,10 +4,10 @@
 Coletor de ofertas dos supermercados (roda no GitHub Actions, de graça).
 
 Melhorias aplicadas:
-  1. Compatibilidade do modelo 3.5-flash-lite sem thinkingConfig (resolve o HTTP 400).
-  2. Falhas pontuais em uma loja não cancelam mais as outras lojas (Assaí e Costa rodam 100%).
-  3. Navegador furtivo (evita Cloudflare) + Fallback automático para o Tatico.
-  4. Extração rápida (3 a 10s por chamada).
+  1. Espera e retentativa em caso de erro 503 (alta demanda do Google) antes de desistir.
+  2. Falhas em uma loja NUNCA abortam os outros supermercados.
+  3. Navegador furtivo + Abertura do encarte completo do Tatico no portal alternativo.
+  4. Extração rápida sem bloqueios de cota.
 """
 import base64
 import csv
@@ -166,7 +166,6 @@ def chamar_gemini(partes):
             "temperature": 0,
             "responseMimeType": "application/json",
         }
-        # Modelos Lite geram HTTP 400 se receberem thinkingConfig
         if "lite" not in modelo.lower():
             generation_config["thinkingConfig"] = {"thinkingBudget": 0}
 
@@ -187,18 +186,24 @@ def chamar_gemini(partes):
                 return json.loads(texto)
             except urllib.error.HTTPError as e:
                 detalhe = e.read()[:1500]
-                # Se der 400 por incompatibilidade com thinkingConfig, remove e tenta de novo
                 if e.code == 400 and "thinkingConfig" in generation_config:
                     del generation_config["thinkingConfig"]
                     continue
                 if e.code == 503:
-                    log(f"  ! {modelo} em alta demanda (HTTP 503). Alternando modelo...")
-                    break
+                    # Instabilidade temporária: aguarda e tenta de novo antes de trocar de modelo
+                    if tentativa < 2:
+                        espera = (tentativa + 1) * 7
+                        log(f"  ! {modelo} com alta demanda (HTTP 503). Aguardando {espera}s...")
+                        time.sleep(espera)
+                        continue
+                    else:
+                        log(f"  ! {modelo} continuou em alta demanda. Alternando modelo...")
+                        break
                 if e.code == 429:
                     if b"per day" in detalhe.lower() or b"perday" in detalhe.lower():
                         log(f"  ! Cota diária atingida em {modelo}. Alternando modelo...")
                         break
-                    time.sleep(15)
+                    time.sleep(12)
                     continue
                 if e.code in (400, 401, 403, 404):
                     texto_erro = detalhe.decode("utf-8", "replace").replace("\n", " ")
@@ -210,7 +215,7 @@ def chamar_gemini(partes):
                     continue
                 ultimo_erro = str(e)
 
-    raise CotaEsgotada(f"Modelos da IA indisponíveis ou cotas esgotadas: {ultimo_erro}")
+    raise CotaEsgotada(f"Modelos da IA indisponíveis temporariamente: {ultimo_erro}")
 
 
 def converter_preco(v):
@@ -272,18 +277,13 @@ def ler_com_ia(partes, run):
         run["erros_consecutivos"] = 0
         log(f"  IA #{run['chamadas']}: {len(res)} oferta(s) em {time.time() - t0:.0f}s")
         return res
-    except CotaEsgotada as e:
-        run["parar"] = True
-        log("  ! " + str(e))
-        return None
-    except ErroFatalIA as e:
-        # Falhas em um lote não abortam o restante dos supermercados
+    except (CotaEsgotada, ErroFatalIA) as e:
+        # Erro pontual nesta chamada NÃO aborta as outras lojas
         run["erros_consecutivos"] = run.get("erros_consecutivos", 0) + 1
         log("  ! Aviso na IA: " + str(e)[:250])
-        if run["erros_consecutivos"] >= 4:
+        if run["erros_consecutivos"] >= 5:
             run["parar"] = True
-            run["erro_ia"] = str(e)[:500]
-            log("  ! 4 erros consecutivos na IA. Interrompendo coleta geral.")
+            log("  ! 5 erros consecutivos na IA. Interrompendo coleta geral.")
         return None
 
 
@@ -299,7 +299,7 @@ def tipo_da_imagem(headers, url):
 def baixar_imagem(page, url, referer):
     tipo, corpo = None, None
 
-    # 1) Tenta screenshot do elemento na página principal ou em iframes (imune a 403)
+    # 1) Tenta screenshot do elemento na página ou frames (100% imune a 403 do Assaí)
     try:
         nome_arquivo = url.split("?")[0].split("/")[-1]
         for p in [page] + page.frames:
@@ -414,20 +414,29 @@ def coletar_loja(page, loja, estado, run, hoje):
     texto = page.inner_text("body")
     imagens = page.evaluate(JS_IMAGENS)
 
-    # Se a página foi barrada pelo Cloudflare (< 300 caracteres) e tem fallback, tenta a alternativa
+    # Se a página foi barrada pelo Cloudflare (< 300 chars), usa folhetos alternativos
     if len(texto.strip()) < 300 and not imagens and loja.get("url_fallback"):
         log(f"  ! Site principal bloqueado ({len(texto.strip())} chars). Acessando folhetos alternativos...")
         try:
             page.goto(loja["url_fallback"], wait_until="domcontentloaded", timeout=60000)
-            page.wait_for_timeout(3000)
+            page.wait_for_timeout(2000)
             fechar_avisos_e_cookies(page)
+            
+            # Clica no primeiro folheto para abrir as páginas completas de encarte
+            primeiro = page.locator("a[href*='/folheto/'], a[href*='/folhetos/']").first
+            if primeiro.count() > 0:
+                href = primeiro.get_attribute("href")
+                if href and "supermercados-tatico" in href and href != page.url:
+                    page.goto(href, wait_until="domcontentloaded", timeout=30000)
+                    page.wait_for_timeout(2000)
+            
             page.evaluate(JS_ROLAR)
             texto = page.inner_text("body")
             imagens = page.evaluate(JS_IMAGENS)
         except Exception as e:
             log(f"  ! Erro no fallback: {str(e)[:150]}")
 
-    # Varre iframes se houver
+    # Varre iframes
     for frame in page.frames:
         if frame != page.main_frame:
             try:
@@ -479,7 +488,7 @@ def coletar_loja(page, loja, estado, run, hoje):
             log(f"  ! leitura do lote: {str(e)[:150]}")
             return "falha"
         if res is None:
-            return "parar"
+            return "falha"
         for u in urls_lote:
             lidos["img:" + u] = hoje
         resumo["imagens_lidas"] += len(urls_lote)
@@ -500,13 +509,12 @@ def coletar_loja(page, loja, estado, run, hoje):
         baixadas += 1
         tipo, corpo = baixada
         if lote and bytes_lote + len(corpo) > 10 * 1024 * 1024:
-            if enviar_lote() == "parar":
-                break
+            enviar_lote()
         lote.append(parte_imagem(tipo, corpo))
         lote_urls.append(img["url"])
         bytes_lote += len(corpo)
-        if len(lote) >= LOTE_IMAGENS and enviar_lote() == "parar":
-            break
+        if len(lote) >= LOTE_IMAGENS:
+            enviar_lote()
     enviar_lote()
 
     # 3) Plano B: prints da página
