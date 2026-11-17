@@ -4,10 +4,9 @@
 Coletor de ofertas dos supermercados (roda no GitHub Actions, de graça).
 
 Melhorias aplicadas:
-  1. Espera e retentativa em caso de erro 503 (alta demanda do Google) antes de desistir.
-  2. Falhas em uma loja NUNCA abortam os outros supermercados.
-  3. Navegador furtivo + Abertura do encarte completo do Tatico no portal alternativo.
-  4. Extração rápida sem bloqueios de cota.
+  1. Interceptação de respostas de rede no Playwright -> imagens do Assaí sem 403 e sem erro de print.
+  2. Abertura do encarte completo do Tatico com URL absoluta.
+  3. Suporte resiliente a instabilidades da IA com fallback automático.
 """
 import base64
 import csv
@@ -190,7 +189,6 @@ def chamar_gemini(partes):
                     del generation_config["thinkingConfig"]
                     continue
                 if e.code == 503:
-                    # Instabilidade temporária: aguarda e tenta de novo antes de trocar de modelo
                     if tentativa < 2:
                         espera = (tentativa + 1) * 7
                         log(f"  ! {modelo} com alta demanda (HTTP 503). Aguardando {espera}s...")
@@ -278,7 +276,6 @@ def ler_com_ia(partes, run):
         log(f"  IA #{run['chamadas']}: {len(res)} oferta(s) em {time.time() - t0:.0f}s")
         return res
     except (CotaEsgotada, ErroFatalIA) as e:
-        # Erro pontual nesta chamada NÃO aborta as outras lojas
         run["erros_consecutivos"] = run.get("erros_consecutivos", 0) + 1
         log("  ! Aviso na IA: " + str(e)[:250])
         if run["erros_consecutivos"] >= 5:
@@ -296,16 +293,22 @@ def tipo_da_imagem(headers, url):
     return tipo
 
 
-def baixar_imagem(page, url, referer):
+def baixar_imagem(page, url, referer, cache_rede):
     tipo, corpo = None, None
 
-    # 1) Tenta screenshot do elemento na página ou frames (100% imune a 403 do Assaí)
+    # 1) Verifica se a imagem já foi recebida pela rede do navegador (imune a 403)
+    nome_arquivo = url.split("?")[0].split("/")[-1]
+    for u, (ct, bytes_img) in cache_rede.items():
+        if nome_arquivo in u:
+            return ct, bytes_img
+
+    # 2) Tenta screenshot do elemento se estiver no DOM
     try:
-        nome_arquivo = url.split("?")[0].split("/")[-1]
         for p in [page] + page.frames:
             try:
-                loc = p.locator(f'img[src*="{nome_arquivo}"]').first
-                if loc.count() > 0 and loc.is_visible():
+                loc = p.locator(f'img[src*="{nome_arquivo}"], a[href*="{nome_arquivo}"]').first
+                if loc.count() > 0:
+                    loc.scroll_into_view_if_needed(timeout=2000)
                     corpo = loc.screenshot(type="jpeg", quality=85)
                     if len(corpo) >= 5000:
                         return "image/jpeg", corpo
@@ -314,7 +317,7 @@ def baixar_imagem(page, url, referer):
     except Exception:
         pass
 
-    # 2) Requisição HTTP direta com headers de navegador
+    # 3) Requisição HTTP direta com cabeçalhos reais
     try:
         r = page.request.get(url, timeout=30000, headers={
             "Referer": referer,
@@ -327,26 +330,6 @@ def baixar_imagem(page, url, referer):
             tipo, corpo = tipo_da_imagem(r.headers, url), r.body()
     except Exception:
         pass
-
-    # 3) Fallback: Fetch dentro do contexto do navegador
-    if corpo is None:
-        try:
-            data_url = page.evaluate("""async (u) => {
-                const res = await fetch(u, { mode: 'no-cors' }).catch(() => null);
-                if (!res) return null;
-                const blob = await res.blob();
-                return new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.readAsDataURL(blob);
-                });
-            }""", url)
-            if data_url and "," in data_url:
-                header, b64 = data_url.split(",", 1)
-                corpo = base64.b64decode(b64)
-                tipo = header.split(";")[0].replace("data:", "") or "image/jpeg"
-        except Exception:
-            pass
 
     if not tipo or not corpo or len(corpo) < 5000 or len(corpo) > 15 * 1024 * 1024:
         return None
@@ -373,15 +356,20 @@ def ler_telas(page, nome, url, run, lidos, hoje):
     chave = f"tela:{nome}:{hoje}"
     if chave in lidos:
         return []
-    altura = int(page.evaluate("document.documentElement.scrollHeight"))
+    try:
+        altura = int(page.evaluate("document.documentElement.scrollHeight || document.body.scrollHeight || 0"))
+    except Exception:
+        return []
     if altura < 400:
         return []
     achados, completo = [], True
     for y in range(0, min(altura, 7200), 2400):
         h = min(2400, altura - y)
-        png = page.screenshot(clip={"x": 0, "y": y, "width": VIEW_W, "height": h},
-                              type="jpeg", quality=75)
+        if h <= 100:
+            continue
         try:
+            png = page.screenshot(clip={"x": 0, "y": y, "width": VIEW_W, "height": h},
+                                  type="jpeg", quality=75)
             res = ler_com_ia([{"text": PROMPT}, parte_imagem("image/jpeg", png)], run)
         except Exception as e:
             log(f"  ! leitura do print: {str(e)[:150]}")
@@ -390,7 +378,7 @@ def ler_telas(page, nome, url, run, lidos, hoje):
             completo = False
             break
         achados += res
-    if completo:
+    if completo and achados:
         lidos[chave] = hoje
     return achados
 
@@ -401,6 +389,20 @@ def coletar_loja(page, loja, estado, run, hoje):
     resumo = {"imagens": 0, "imagens_novas": 0, "imagens_lidas": 0, "ofertas": 0}
     ofertas = []
     chamadas_antes = run["chamadas"]
+
+    # Intercepta as imagens que o navegador carregar da rede (garante Assaí)
+    cache_rede = {}
+    def salvar_resposta(res):
+        try:
+            u = res.url
+            if res.status == 200 and any(ext in u.lower() for ext in [".jpg", ".jpeg", ".png", ".webp"]):
+                ct = res.headers.get("content-type") or "image/jpeg"
+                corpo = res.body()
+                if len(corpo) >= 5000:
+                    cache_rede[u] = (ct, corpo)
+        except Exception:
+            pass
+    page.on("response", salvar_resposta)
 
     page.goto(url, wait_until="domcontentloaded", timeout=60000)
     try:
@@ -422,11 +424,11 @@ def coletar_loja(page, loja, estado, run, hoje):
             page.wait_for_timeout(2000)
             fechar_avisos_e_cookies(page)
             
-            # Clica no primeiro folheto para abrir as páginas completas de encarte
+            # Pega o link absoluto do folheto para abrir as páginas completas
             primeiro = page.locator("a[href*='/folheto/'], a[href*='/folhetos/']").first
             if primeiro.count() > 0:
-                href = primeiro.get_attribute("href")
-                if href and "supermercados-tatico" in href and href != page.url:
+                href = primeiro.evaluate("el => el.href")
+                if href and href != page.url:
                     page.goto(href, wait_until="domcontentloaded", timeout=30000)
                     page.wait_for_timeout(2000)
             
@@ -466,7 +468,8 @@ def coletar_loja(page, loja, estado, run, hoje):
                 log(f"  ! leitura do texto: {str(e)[:150]}")
                 res = None
             if res is not None:
-                lidos[chave] = hoje
+                if res:
+                    lidos[chave] = hoje
                 ofertas += [(p, v, url) for p, v in res]
 
     # 2) Imagens de encarte
@@ -489,8 +492,9 @@ def coletar_loja(page, loja, estado, run, hoje):
             return "falha"
         if res is None:
             return "falha"
-        for u in urls_lote:
-            lidos["img:" + u] = hoje
+        if res:  # Só grava no cache se encontrou ofertas de verdade
+            for u in urls_lote:
+                lidos["img:" + u] = hoje
         resumo["imagens_lidas"] += len(urls_lote)
         ofertas.extend((p, v, url) for p, v in res)
         return "ok"
@@ -499,12 +503,11 @@ def coletar_loja(page, loja, estado, run, hoje):
         if not lote and (run["parar"] or run["chamadas"] - chamadas_antes >= LIMITE_POR_LOJA):
             break
         try:
-            baixada = baixar_imagem(page, img["url"], url)
+            baixada = baixar_imagem(page, img["url"], url, cache_rede)
         except Exception as e:
             log(f"  ! imagem {img['url'][-60:]}: {str(e)[:150]}")
             continue
         if baixada is None:
-            lidos["img:" + img["url"]] = hoje
             continue
         baixadas += 1
         tipo, corpo = baixada
