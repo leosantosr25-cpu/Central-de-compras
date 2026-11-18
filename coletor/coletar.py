@@ -3,11 +3,18 @@
 """
 Coletor de ofertas dos supermercados (roda no GitHub Actions, de graça).
 
-Melhorias finais aplicadas:
-  1. Rolagem segura (JS_ROLAR) imune a document.body nulo (resolve Tatico).
-  2. Screenshot seguro sem erro de corte de tela (resolve Assaí).
-  3. Interceptação de imagens da rede e folheto completo.
-  4. Fallback automático de IA contra cotas e erros 503.
+Melhorias definitivas para os 4 supermercados:
+  1. Auto-recuperação: se um mercado ainda não tiver ofertas no ofertas.csv,
+     ignora o cache antigo (estado.json) daquele mercado automaticamente.
+  2. Tatico Goiânia: busca os encartes reais em /gyn/tabloide/, /gyn/ofertas/
+     e na API WordPress (/gyn/wp-json/wp/v2/media), usando proxy do Google/Cloudflare
+     (translate.goog e wsrv.nl) quando o IP do GitHub Actions (EUA) for bloqueado.
+  3. Assaí Independência: extrai todos os encartes diretamente do JSON interno
+     do Assaí (Drupal.settings.assai.ofertasJson) + carrossel e prioriza o
+     download HTTP em alta resolução do CloudFront antes de qualquer print.
+  4. Filtro inteligente: não descarta ofertas por ano de validade inferido pela IA,
+     ignora miniaturas 250x250 sem preço do Pro Brazilian e filtra encartes de
+     outras cidades (DF/Entorno/Trindade) na URL do Costa Atacadão.
 """
 import base64
 import csv
@@ -18,6 +25,7 @@ import re
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -31,13 +39,15 @@ FUSO = ZoneInfo("America/Sao_Paulo")
 CAMPOS = ["data", "supermercado", "produto", "preco", "link"]
 VIEW_W = 1366
 USER_AGENT = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-              "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+              "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
 
 LOJAS = [
     {
         "nome": "Tatico",
-        "url": "https://taticobaratotododia.com.br/gyn/",
-        "url_fallback": "https://www.portafolhetos.com.br/folhetos/supermercados-tatico/",
+        "url": "https://taticobaratotododia.com.br/gyn/tabloide/",
+        "urls_extras": [
+            "https://taticobaratotododia.com.br/gyn/ofertas/",
+        ],
     },
     {"nome": "Pro Brazilian", "url": "https://www.probrazilian.com.br/ofertas"},
     {"nome": "Assaí", "url": "https://www.assai.com.br/ofertas/goias/assai-independencia"},
@@ -45,6 +55,7 @@ LOJAS = [
         "nome": "Costa Atacadão",
         "url": "https://costaatacadao.com.br/ofertas/",
         "excluir_contexto": r"Distrito Federal|Valpara|Rio Verde|Luzi[aâ]nia|Senador Canedo|Trindade",
+        "excluir_url": r"[-_](df|entorno)[-_.]|trindade|rio-verde|valparaiso|luziania|senador-canedo",
     },
 ]
 
@@ -59,7 +70,7 @@ PROMPT = (
     "Você lê ofertas de supermercado do Brasil. Extraia TODOS os produtos que tenham preço visível. "
     "Responda somente com um array JSON; cada item no formato "
     '{"produto": "nome com marca e tamanho quando aparecerem (ex.: Arroz Branco Tio João 5kg)", '
-    '"preco": número em reais (ex.: 26.9), "validade": "AAAA-MM-DD" se o encarte disser até quando vale, senão ""}. '
+    '"preco": número em reais (ex.: 26.9)}. '
     "Regras: use o preço da embalagem/unidade como anunciado (só use preço por kg quando for o único); "
     "ignore itens sem preço legível; não invente nada; sem texto fora do JSON; se não houver ofertas, responda []."
 )
@@ -69,10 +80,10 @@ PROMPT_LOTE = PROMPT + (" Vários encartes ou páginas do mesmo supermercado seg
 
 JS_IMAGENS = r"""
 () => {
-  const BAD = /logo|icon|favicon|sprite|avatar|pixel|loading|placeholder|\/(styles|themes|icons|assets|sprites)\//i;
-  const THUMB = /-\d{2,3}x\d{2,3}\.(jpe?g|png|webp)/i;
+  const BAD = /logo|icon|favicon|sprite|avatar|pixel|loading|placeholder|feed\.png|maskot-404|sol-celular|banner-passai|google-play|app-store|ico-|bg-sac|bg-sobre|bg-portal|bg-t7|bg-centro|bg-papilon|bg-campinas|bg-chamada|bg-garavelo|bg-top|bg-6-lojas|img-email|img-whatsapp|img-lojas|BANNER-VAGAS|BANNER-BEM-VINDO|produto-assets-vipcommerce|\/uploads\/202[0-4]\/|\/(styles|themes|icons|assets|sprites)\//i;
+  const THUMB = /(-\d{2,4}x\d{2,4}\.(jpe?g|png|webp))|(\/\d{2,3}x\d{2,3}\/)/i;
   const ehImg = (u) => /\.(jpe?g|png|webp)(\?|$)/i.test(u || '');
-  
+
   const pegarUrl = (el) => {
     return el.getAttribute('data-lazy-src') ||
            el.getAttribute('data-src') ||
@@ -92,6 +103,32 @@ JS_IMAGENS = r"""
 
   const achados = new Map();
 
+  // 1) Suporte especial Assaí: extrai todos os encartes da loja direto do JSON do Drupal
+  try {
+    const bloco = document.querySelector('.bloco-ofertas-tabloide');
+    const nid = bloco ? Number(bloco.getAttribute('data-nid') || 2562) : 2562;
+    const eid = bloco ? Number(bloco.getAttribute('data-eid') || 8) : 8;
+    const assai = window.Drupal && window.Drupal.settings && window.Drupal.settings.assai;
+    if (assai) {
+      const listas = [assai.ofertasJson || [], assai.ofertasJson_v1 || []];
+      for (const lista of listas) {
+        for (const ofr of (lista || [])) {
+          const lojas = ofr.lojas || [];
+          const pertence = !nid || lojas.some(l => Number(l.nid) === nid && (!eid || Number(l.eid) === eid));
+          if (pertence && Array.isArray(ofr.images)) {
+            for (const im of ofr.images) {
+              const u = typeof im === 'string' ? im : (im && im.url) || '';
+              if (ehImg(u) && !BAD.test(u) && !achados.has(u)) {
+                achados.set(u, ofr.title || 'Encarte Assaí');
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch (e) {}
+
+  // 2) Imagens e links do DOM
   document.querySelectorAll('img').forEach(img => {
     if (img.closest('header, footer, nav')) return;
     const a = img.closest('a');
@@ -163,7 +200,7 @@ def chamar_gemini(partes):
 
     for modelo in modelos:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
-        
+
         generation_config = {
             "temperature": 0,
             "responseMimeType": "application/json",
@@ -182,7 +219,7 @@ def chamar_gemini(partes):
                 headers={"Content-Type": "application/json", "x-goog-api-key": chave},
             )
             try:
-                with urllib.request.urlopen(req, timeout=60) as r:
+                with urllib.request.urlopen(req, timeout=75) as r:
                     dados = json.loads(r.read())
                 texto = dados["candidates"][0]["content"]["parts"][0]["text"]
                 return json.loads(texto)
@@ -255,9 +292,6 @@ def normalizar_resposta(resp):
             continue
         if not (0.2 <= preco <= 5000):
             continue
-        validade = str(it.get("validade") or "").strip()
-        if re.match(r"^\d{4}-\d{2}-\d{2}$", validade) and validade < hoje_iso():
-            continue
         saida.append((nome, round(preco, 2)))
     return saida
 
@@ -287,56 +321,161 @@ def ler_com_ia(partes, run):
         return None
 
 
-# ---------------------------------------------------------------- páginas
+# ---------------------------------------------------------------- páginas e imagens
 def tipo_da_imagem(headers, url):
     tipo = (headers.get("content-type") or "").split(";")[0].strip().lower()
     if tipo not in ("image/jpeg", "image/png", "image/webp"):
         ext = url.split("?")[0].rsplit(".", 1)[-1].lower()
         tipo = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}.get(ext)
-    return tipo
+    return tipo or "image/jpeg"
+
+
+def validar_imagem(tipo, corpo):
+    if not corpo or len(corpo) < 8000 or len(corpo) > 15 * 1024 * 1024:
+        return None
+    # Verifica assinatura mágica básica (JPEG, PNG, WEBP) para não enviar HTML de erro à IA
+    if corpo[:2] == b"\xff\xd8":
+        return "image/jpeg", corpo
+    if corpo[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png", corpo
+    if corpo[:4] == b"RIFF" and corpo[8:12] == b"WEBP":
+        return "image/webp", corpo
+    return None
+
+
+def baixar_via_urllib(url, referer):
+    req = urllib.request.Request(url, headers={
+        "User-Agent": USER_AGENT,
+        "Referer": referer,
+        "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+    })
+    with urllib.request.urlopen(req, timeout=25) as r:
+        return validar_imagem(tipo_da_imagem(r.headers, url), r.read())
 
 
 def baixar_imagem(page, url, referer, cache_rede):
-    tipo, corpo = None, None
-
-    # 1) Verifica se a imagem já foi recebida pela rede do navegador (imune a 403)
+    # 1) Verifica se a imagem já foi capturada no tráfego de rede do navegador
     nome_arquivo = url.split("?")[0].split("/")[-1]
     for u, (ct, bytes_img) in cache_rede.items():
-        if nome_arquivo in u:
-            return ct, bytes_img
+        if nome_arquivo and nome_arquivo in u:
+            ok = validar_imagem(ct, bytes_img)
+            if ok:
+                return ok
 
-    # 2) Tenta screenshot do elemento se estiver no DOM
+    # 2) Download HTTP direto com urllib (ideal para CloudFront do Assaí e WP do Costa)
+    try:
+        ok = baixar_via_urllib(url, referer)
+        if ok:
+            return ok
+    except Exception:
+        pass
+
+    # 3) Download via contexto de rede do Playwright
+    try:
+        r = page.request.get(url, timeout=25000, headers={
+            "Referer": referer,
+            "User-Agent": USER_AGENT,
+            "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        })
+        if r.ok:
+            ok = validar_imagem(tipo_da_imagem(r.headers, url), r.body())
+            if ok:
+                return ok
+    except Exception:
+        pass
+
+    # 4) Fallback via proxies globais (resolve bloqueio de IP dos EUA no Tatico)
+    urls_proxy = [
+        "https://wsrv.nl/?url=" + urllib.parse.quote(url, safe=""),
+    ]
+    if "taticobaratotododia.com.br/" in url:
+        urls_proxy.insert(
+            0,
+            url.replace("https://taticobaratotododia.com.br/",
+                        "https://taticobaratotododia-com-br.translate.goog/")
+            + ("&_x_tr_sl=auto&_x_tr_tl=pt" if "?" in url else "?_x_tr_sl=auto&_x_tr_tl=pt")
+        )
+    for up in urls_proxy:
+        try:
+            ok = baixar_via_urllib(up, referer)
+            if ok:
+                return ok
+        except Exception:
+            pass
+
+    # 5) Último recurso: screenshot apenas da tag <img> visível no DOM
     try:
         for p in [page] + page.frames:
             try:
-                loc = p.locator(f'img[src*="{nome_arquivo}"], a[href*="{nome_arquivo}"]').first
-                if loc.count() > 0:
+                loc = p.locator(f'img[src*="{nome_arquivo}"]').first
+                if loc.count() > 0 and loc.is_visible():
                     loc.scroll_into_view_if_needed(timeout=2000)
-                    corpo = loc.screenshot(type="jpeg", quality=85)
-                    if len(corpo) >= 5000:
-                        return "image/jpeg", corpo
+                    ok = validar_imagem("image/jpeg", loc.screenshot(type="jpeg", quality=85))
+                    if ok:
+                        return ok
             except Exception:
                 pass
     except Exception:
         pass
 
-    # 3) Requisição HTTP direta com cabeçalhos reais
-    try:
-        r = page.request.get(url, timeout=30000, headers={
-            "Referer": referer,
-            "User-Agent": USER_AGENT,
-            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-            "Sec-Fetch-Dest": "image",
-            "Sec-Fetch-Mode": "no-cors",
-        })
-        if r.ok:
-            tipo, corpo = tipo_da_imagem(r.headers, url), r.body()
-    except Exception:
-        pass
+    return None
 
-    if not tipo or not corpo or len(corpo) < 5000 or len(corpo) > 15 * 1024 * 1024:
-        return None
-    return tipo, corpo
+
+def descobrir_imagens_tatico():
+    """Busca os encartes atuais do Tatico Goiânia mesmo quando o IP dos EUA é bloqueado."""
+    achados = []
+    vistos = set()
+
+    def registrar(u):
+        u = u.split("?")[0].replace("https://taticobaratotododia-com-br.translate.goog/",
+                                    "https://taticobaratotododia.com.br/")
+        if not re.search(r"/uploads/202[5-9]/\d{2}/[^\"'<>]+\.(?:jpe?g|png|webp)$", u, re.I):
+            return
+        if re.search(r"-\d{2,4}x\d{2,4}\.", u):
+            return
+        if re.search(r"BANNER-VAGAS|BANNER-BEM-VINDO|BANNER-TATICO|BANNER-1000|BaB_Ype", u, re.I):
+            return
+        if u not in vistos:
+            vistos.add(u)
+            achados.append({"url": u, "ctx": "Encarte Tatico Goiânia"})
+
+    # 1) Páginas de Tabloide e Ofertas (direto + via Google Translate proxy)
+    fontes_html = [
+        "https://taticobaratotododia.com.br/gyn/tabloide/",
+        "https://taticobaratotododia.com.br/gyn/ofertas/",
+        "https://taticobaratotododia-com-br.translate.goog/gyn/tabloide/?_x_tr_sl=auto&_x_tr_tl=pt&_x_tr_hl=pt-BR",
+        "https://taticobaratotododia-com-br.translate.goog/gyn/ofertas/?_x_tr_sl=auto&_x_tr_tl=pt&_x_tr_hl=pt-BR",
+    ]
+    for u in fontes_html:
+        try:
+            req = urllib.request.Request(u, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                html = r.read().decode("utf-8", "replace")
+            for m in re.findall(r"https?://[a-zA-Z0-9./_~:-]+/uploads/202[5-9]/[0-9]{2}/[a-zA-Z0-9._-]+\.(?:jpe?g|png|webp)", html, re.I):
+                registrar(m)
+        except Exception:
+            pass
+
+    # 2) API REST de Mídia do WordPress (direto + via Google Translate proxy)
+    fontes_api = [
+        "https://taticobaratotododia.com.br/gyn/wp-json/wp/v2/media?per_page=20",
+        "https://taticobaratotododia-com-br.translate.goog/gyn/wp-json/wp/v2/media?per_page=20&_x_tr_sl=auto&_x_tr_tl=pt&_x_tr_hl=pt-BR",
+    ]
+    for u in fontes_api:
+        if achados:
+            break
+        try:
+            req = urllib.request.Request(u, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                itens = json.loads(r.read().decode("utf-8", "replace"))
+            if isinstance(itens, list):
+                for it in itens:
+                    if isinstance(it, dict) and it.get("source_url"):
+                        registrar(str(it["source_url"]))
+        except Exception:
+            pass
+
+    return achados
 
 
 def parte_imagem(tipo, corpo):
@@ -360,7 +499,6 @@ def ler_telas(page, nome, url, run, lidos, hoje):
     if chave in lidos:
         return []
     try:
-        # Tira print direto da tela visível (sem erro de corte)
         png = page.screenshot(type="jpeg", quality=75)
         res = ler_com_ia([{"text": PROMPT}, parte_imagem("image/jpeg", png)], run)
         if res:
@@ -371,14 +509,16 @@ def ler_telas(page, nome, url, run, lidos, hoje):
     return []
 
 
-def coletar_loja(page, loja, estado, run, hoje):
+def coletar_loja(page, loja, estado, run, hoje, forcar_releitura=False):
     nome, url = loja["nome"], loja["url"]
     lidos = estado["lidos"]
     resumo = {"imagens": 0, "imagens_novas": 0, "imagens_lidas": 0, "ofertas": 0}
     ofertas = []
     chamadas_antes = run["chamadas"]
 
-    # Intercepta as imagens da rede
+    if forcar_releitura:
+        log(f"  * {nome} ainda está sem ofertas no CSV; forçando leitura completa dos encartes...")
+
     cache_rede = {}
     def salvar_resposta(res):
         try:
@@ -386,62 +526,85 @@ def coletar_loja(page, loja, estado, run, hoje):
             if res.status == 200 and any(ext in u.lower() for ext in [".jpg", ".jpeg", ".png", ".webp"]):
                 ct = res.headers.get("content-type") or "image/jpeg"
                 corpo = res.body()
-                if len(corpo) >= 5000:
+                if len(corpo) >= 8000:
                     cache_rede[u] = (ct, corpo)
         except Exception:
             pass
     page.on("response", salvar_resposta)
 
-    page.goto(url, wait_until="domcontentloaded", timeout=60000)
-    try:
-        page.wait_for_load_state("networkidle", timeout=15000)
-    except PWTimeout:
-        pass
+    texto = ""
+    imagens = []
 
-    fechar_avisos_e_cookies(page)
-    page.evaluate(JS_ROLAR)
-
-    texto = page.inner_text("body")
-    imagens = page.evaluate(JS_IMAGENS)
-
-    # Se a página principal foi bloqueada pelo Cloudflare (< 300 chars), usa folhetos alternativos
-    if len(texto.strip()) < 300 and not imagens and loja.get("url_fallback"):
-        log(f"  ! Site principal bloqueado ({len(texto.strip())} chars). Acessando folhetos alternativos...")
+    urls_visitar = [url] + list(loja.get("urls_extras") or [])
+    for u_pag in urls_visitar:
         try:
-            page.goto(loja["url_fallback"], wait_until="domcontentloaded", timeout=60000)
-            page.wait_for_timeout(2000)
-            fechar_avisos_e_cookies(page)
-            
-            # Pega o link absoluto do folheto para abrir as páginas completas
-            primeiro = page.locator("a[href*='/folheto/'], a[href*='/folhetos/']").first
-            if primeiro.count() > 0:
-                href = primeiro.evaluate("el => el.href")
-                if href and href != page.url:
-                    page.goto(href, wait_until="domcontentloaded", timeout=30000)
-                    page.wait_for_timeout(2000)
-            
-            page.evaluate(JS_ROLAR)
-            texto = page.inner_text("body")
-            imagens = page.evaluate(JS_IMAGENS)
-        except Exception as e:
-            log(f"  ! Erro no fallback: {str(e)[:150]}")
-
-    # Varre iframes
-    for frame in page.frames:
-        if frame != page.main_frame:
+            page.goto(u_pag, wait_until="domcontentloaded", timeout=60000)
             try:
-                imgs_frame = frame.evaluate(JS_IMAGENS)
-                if imgs_frame:
-                    imagens.extend(imgs_frame)
-                t_frame = frame.inner_text("body")
-                if t_frame and len(t_frame) > 100:
-                    texto += "\n" + t_frame
-            except Exception:
+                page.wait_for_load_state("networkidle", timeout=15000)
+            except PWTimeout:
                 pass
+
+            # No Assaí, aguarda o JSON de encartes (ofertas_assai.json) carregar no Drupal
+            if "assai.com.br" in u_pag:
+                try:
+                    page.wait_for_function(
+                        "() => (window.Drupal && window.Drupal.settings && window.Drupal.settings.assai && "
+                        "window.Drupal.settings.assai.ofertasJson && window.Drupal.settings.assai.ofertasJson.length > 0) || "
+                        "document.querySelectorAll('.ofertas-slider img').length > 0",
+                        timeout=15000
+                    )
+                    page.wait_for_timeout(1000)
+                except Exception:
+                    pass
+
+            fechar_avisos_e_cookies(page)
+            page.evaluate(JS_ROLAR)
+
+            t_pag = page.inner_text("body")
+            if t_pag:
+                texto += "\n" + t_pag
+            imgs_pag = page.evaluate(JS_IMAGENS)
+            if imgs_pag:
+                imagens.extend(imgs_pag)
+
+            for frame in page.frames:
+                if frame != page.main_frame:
+                    try:
+                        imgs_frame = frame.evaluate(JS_IMAGENS)
+                        if imgs_frame:
+                            imagens.extend(imgs_frame)
+                        t_frame = frame.inner_text("body")
+                        if t_frame and len(t_frame) > 100:
+                            texto += "\n" + t_frame
+                    except Exception:
+                        pass
+        except Exception as e:
+            log(f"  ! Aviso ao abrir {u_pag}: {str(e)[:120]}")
+
+    # Se for Tatico e o acesso direto não trouxe encartes de 2025+, busca via descoberta direta/proxy
+    if nome == "Tatico":
+        imagens = [i for i in imagens if re.search(r"/uploads/202[5-9]/", i.get("url") or "")]
+        if not imagens:
+            log("  ! Buscando encartes do Tatico Goiânia via rota alternativa (anti-bloqueio)...")
+            imagens = descobrir_imagens_tatico()
+
+    # Desduplica imagens mantendo a ordem
+    vistos_urls = set()
+    imagens_unicas = []
+    for i in imagens:
+        u = i.get("url")
+        if u and u not in vistos_urls:
+            vistos_urls.add(u)
+            imagens_unicas.append(i)
+    imagens = imagens_unicas
 
     if loja.get("excluir_contexto"):
         rx = re.compile(loja["excluir_contexto"], re.I)
         imagens = [i for i in imagens if not rx.search(i.get("ctx") or "")]
+    if loja.get("excluir_url"):
+        rx_u = re.compile(loja["excluir_url"], re.I)
+        imagens = [i for i in imagens if not rx_u.search(urllib.parse.unquote(i.get("url") or ""))]
+
     resumo["imagens"] = len(imagens)
     log(f"  texto: {len(texto)} caracteres, {texto.count('R$')} símbolos R$; imagens candidatas: {len(imagens)}")
 
@@ -449,7 +612,7 @@ def coletar_loja(page, loja, estado, run, hoje):
     tem_texto = texto.count("R$") >= 5
     if tem_texto:
         chave = f"texto:{nome}:{hashlib.sha1(texto.encode('utf-8')).hexdigest()[:16]}"
-        if chave not in lidos:
+        if forcar_releitura or chave not in lidos:
             try:
                 res = ler_com_ia([{"text": PROMPT + "\n\nTexto da página:\n" + texto[:25000]}], run)
             except Exception as e:
@@ -461,7 +624,11 @@ def coletar_loja(page, loja, estado, run, hoje):
                 ofertas += [(p, v, url) for p, v in res]
 
     # 2) Imagens de encarte
-    novas = [i for i in imagens if "img:" + i["url"] not in lidos]
+    if forcar_releitura:
+        novas = list(imagens)
+    else:
+        novas = [i for i in imagens if "img:" + i["url"] not in lidos]
+
     resumo["imagens_novas"] = len(novas)
     baixadas = 0
     lote, lote_urls, bytes_lote = [], [], 0
@@ -509,7 +676,7 @@ def coletar_loja(page, loja, estado, run, hoje):
     enviar_lote()
 
     # 3) Plano B: prints da página
-    if not tem_texto and (not imagens or (novas and baixadas == 0)):
+    if not ofertas and not tem_texto and (not imagens or (novas and baixadas == 0)):
         if len(texto.strip()) > 300:
             ofertas += [(p, v, url) for p, v in ler_telas(page, nome, url, run, lidos, hoje)]
 
@@ -522,6 +689,9 @@ def carregar_estado():
     try:
         e = json.loads((DADOS / "estado.json").read_text("utf-8"))
         if isinstance(e.get("lidos"), dict):
+            # Limpa entradas antigas inválidas (404, ícones ou miniaturas sem preço)
+            lixo = re.compile(r"maskot-404|feed\.png|produto-assets-vipcommerce|/250x250/", re.I)
+            e["lidos"] = {k: v for k, v in e["lidos"].items() if not lixo.search(k)}
             return e
     except Exception:
         pass
@@ -586,6 +756,9 @@ def main():
     DADOS.mkdir(exist_ok=True)
     hoje = hoje_iso()
     estado = carregar_estado()
+    existentes = ler_csv()
+    mercados_com_oferta = {l.get("supermercado") for l in existentes if l.get("supermercado")}
+
     run = {"chamadas": 0, "parar": False, "erro_ia": "", "erros_consecutivos": 0, "inicio": time.time()}
     novas, resumo = [], {}
 
@@ -603,11 +776,15 @@ def main():
         for loja in LOJAS:
             log(f"== {loja['nome']} ({loja['url']})")
             page = contexto.new_page()
+            forcar = loja["nome"] not in mercados_com_oferta
             try:
-                resumo[loja["nome"]], ofertas = coletar_loja(page, loja, estado, run, hoje)
+                resumo[loja["nome"]], ofertas = coletar_loja(
+                    page, loja, estado, run, hoje, forcar_releitura=forcar
+                )
                 for produto, preco, link in ofertas:
                     novas.append({"data": hoje, "supermercado": loja["nome"], "produto": produto,
                                   "preco": f"{preco:.2f}", "link": link})
+                    mercados_com_oferta.add(loja["nome"])
                 log(f"  -> {resumo[loja['nome']]}")
             except Exception as e:
                 resumo[loja["nome"]] = {"erro": str(e)[:200]}
