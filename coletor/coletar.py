@@ -9,9 +9,10 @@ Melhorias definitivas para os 4 supermercados:
   2. Tatico Goiânia: busca os encartes reais em /gyn/tabloide/, /gyn/ofertas/
      e na API WordPress (/gyn/wp-json/wp/v2/media), usando proxy do Google/Cloudflare
      (translate.goog e wsrv.nl) quando o IP do GitHub Actions (EUA) for bloqueado.
-  3. Assaí Independência: extrai todos os encartes diretamente do JSON interno
-     do Assaí (Drupal.settings.assai.ofertasJson) + carrossel e prioriza o
-     download HTTP em alta resolução do CloudFront antes de qualquer print.
+  3. Assaí Independência: extrai todos os encartes do JSON interno do Assaí
+     (Drupal.settings.assai.ofertasJson) resolvendo URLs relativas, faz download
+     direto (urllib / Playwright / fetch no contexto do navegador com cookies)
+     e evita gastar chamada da IA com print do cabeçalho.
   4. Filtro inteligente: não descarta ofertas por ano de validade inferido pela IA,
      ignora miniaturas 250x250 sem preço do Pro Brazilian e filtra encartes de
      outras cidades (DF/Entorno/Trindade) na URL do Costa Atacadão.
@@ -83,6 +84,10 @@ JS_IMAGENS = r"""
   const BAD = /logo|icon|favicon|sprite|avatar|pixel|loading|placeholder|feed\.png|maskot-404|sol-celular|banner-passai|google-play|app-store|ico-|bg-sac|bg-sobre|bg-portal|bg-t7|bg-centro|bg-papilon|bg-campinas|bg-chamada|bg-garavelo|bg-top|bg-6-lojas|img-email|img-whatsapp|img-lojas|BANNER-VAGAS|BANNER-BEM-VINDO|produto-assets-vipcommerce|\/uploads\/202[0-4]\/|\/(styles|themes|icons|assets|sprites)\//i;
   const THUMB = /(-\d{2,4}x\d{2,4}\.(jpe?g|png|webp))|(\/\d{2,3}x\d{2,3}\/)/i;
   const ehImg = (u) => /\.(jpe?g|png|webp)(\?|$)/i.test(u || '');
+  const absUrl = (u) => {
+    try { return u ? new URL(u, location.href).href : ''; }
+    catch (e) { return u || ''; }
+  };
 
   const pegarUrl = (el) => {
     return el.getAttribute('data-lazy-src') ||
@@ -117,7 +122,8 @@ JS_IMAGENS = r"""
           const pertence = !nid || lojas.some(l => Number(l.nid) === nid && (!eid || Number(l.eid) === eid));
           if (pertence && Array.isArray(ofr.images)) {
             for (const im of ofr.images) {
-              const u = typeof im === 'string' ? im : (im && im.url) || '';
+              const raw = typeof im === 'string' ? im : (im && im.url) || '';
+              const u = absUrl(raw);
               if (ehImg(u) && !BAD.test(u) && !achados.has(u)) {
                 achados.set(u, ofr.title || 'Encarte Assaí');
               }
@@ -132,11 +138,11 @@ JS_IMAGENS = r"""
   document.querySelectorAll('img').forEach(img => {
     if (img.closest('header, footer, nav')) return;
     const a = img.closest('a');
-    let url = (a && ehImg(a.href)) ? a.href : pegarUrl(img);
+    let url = absUrl((a && ehImg(a.href)) ? a.href : pegarUrl(img));
 
     if ((!url || BAD.test(url)) && img.srcset) {
       const partes = img.srcset.split(',').map(s => s.trim().split(' ')[0]);
-      url = partes[partes.length - 1] || url;
+      url = absUrl(partes[partes.length - 1] || url);
     }
 
     if (!ehImg(url) || BAD.test(url) || THUMB.test(url) || achados.has(url)) return;
@@ -144,7 +150,7 @@ JS_IMAGENS = r"""
   });
 
   document.querySelectorAll('a[href]').forEach(a => {
-    const url = a.href;
+    const url = absUrl(a.href);
     if (!ehImg(url) || BAD.test(url) || THUMB.test(url) || achados.has(url)) return;
     if (a.closest('header, footer, nav')) return;
     achados.set(url, contexto(a));
@@ -333,7 +339,6 @@ def tipo_da_imagem(headers, url):
 def validar_imagem(tipo, corpo):
     if not corpo or len(corpo) < 8000 or len(corpo) > 15 * 1024 * 1024:
         return None
-    # Verifica assinatura mágica básica (JPEG, PNG, WEBP) para não enviar HTML de erro à IA
     if corpo[:2] == b"\xff\xd8":
         return "image/jpeg", corpo
     if corpo[:8] == b"\x89PNG\r\n\x1a\n":
@@ -344,7 +349,7 @@ def validar_imagem(tipo, corpo):
 
 
 def baixar_via_urllib(url, referer):
-    req = urllib.request.Request(url, headers={
+    req = urllib.request.Request(url.replace(" ", "%20"), headers={
         "User-Agent": USER_AGENT,
         "Referer": referer,
         "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
@@ -354,8 +359,10 @@ def baixar_via_urllib(url, referer):
 
 
 def baixar_imagem(page, url, referer, cache_rede):
+    url_limpa = url.replace(" ", "%20")
+
     # 1) Verifica se a imagem já foi capturada no tráfego de rede do navegador
-    nome_arquivo = url.split("?")[0].split("/")[-1]
+    nome_arquivo = url_limpa.split("?")[0].split("/")[-1]
     for u, (ct, bytes_img) in cache_rede.items():
         if nome_arquivo and nome_arquivo in u:
             ok = validar_imagem(ct, bytes_img)
@@ -364,7 +371,7 @@ def baixar_imagem(page, url, referer, cache_rede):
 
     # 2) Download HTTP direto com urllib (ideal para CloudFront do Assaí e WP do Costa)
     try:
-        ok = baixar_via_urllib(url, referer)
+        ok = baixar_via_urllib(url_limpa, referer)
         if ok:
             return ok
     except Exception:
@@ -372,28 +379,53 @@ def baixar_imagem(page, url, referer, cache_rede):
 
     # 3) Download via contexto de rede do Playwright
     try:
-        r = page.request.get(url, timeout=25000, headers={
+        r = page.request.get(url_limpa, timeout=25000, headers={
             "Referer": referer,
             "User-Agent": USER_AGENT,
             "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
         })
         if r.ok:
-            ok = validar_imagem(tipo_da_imagem(r.headers, url), r.body())
+            ok = validar_imagem(tipo_da_imagem(r.headers, url_limpa), r.body())
             if ok:
                 return ok
     except Exception:
         pass
 
-    # 4) Fallback via proxies globais (resolve bloqueio de IP dos EUA no Tatico)
+    # 4) Fetch dentro da página aberta (usa cookies de sessão / anti-bot do navegador)
+    try:
+        data_url = page.evaluate("""async (u) => {
+            try {
+                const res = await fetch(u);
+                if (!res.ok) return null;
+                const blob = await res.blob();
+                return await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = () => resolve(null);
+                    reader.readAsDataURL(blob);
+                });
+            } catch (e) { return null; }
+        }""", url_limpa)
+        if data_url and "," in data_url:
+            header, b64 = data_url.split(",", 1)
+            corpo = base64.b64decode(b64)
+            tipo = header.split(";")[0].replace("data:", "") or "image/jpeg"
+            ok = validar_imagem(tipo, corpo)
+            if ok:
+                return ok
+    except Exception:
+        pass
+
+    # 5) Fallback via proxies globais (resolve bloqueio de IP dos EUA no Tatico)
     urls_proxy = [
-        "https://wsrv.nl/?url=" + urllib.parse.quote(url, safe=""),
+        "https://wsrv.nl/?url=" + urllib.parse.quote(url_limpa, safe=""),
     ]
-    if "taticobaratotododia.com.br/" in url:
+    if "taticobaratotododia.com.br/" in url_limpa:
         urls_proxy.insert(
             0,
-            url.replace("https://taticobaratotododia.com.br/",
-                        "https://taticobaratotododia-com-br.translate.goog/")
-            + ("&_x_tr_sl=auto&_x_tr_tl=pt" if "?" in url else "?_x_tr_sl=auto&_x_tr_tl=pt")
+            url_limpa.replace("https://taticobaratotododia.com.br/",
+                              "https://taticobaratotododia-com-br.translate.goog/")
+            + ("&_x_tr_sl=auto&_x_tr_tl=pt" if "?" in url_limpa else "?_x_tr_sl=auto&_x_tr_tl=pt")
         )
     for up in urls_proxy:
         try:
@@ -403,7 +435,7 @@ def baixar_imagem(page, url, referer, cache_rede):
         except Exception:
             pass
 
-    # 5) Último recurso: screenshot apenas da tag <img> visível no DOM
+    # 6) Último recurso: screenshot apenas da tag <img> visível no DOM
     try:
         for p in [page] + page.frames:
             try:
@@ -418,6 +450,7 @@ def baixar_imagem(page, url, referer, cache_rede):
     except Exception:
         pass
 
+    log(f"  ! Não foi possível baixar imagem: {url_limpa[-80:]}")
     return None
 
 
@@ -439,7 +472,6 @@ def descobrir_imagens_tatico():
             vistos.add(u)
             achados.append({"url": u, "ctx": "Encarte Tatico Goiânia"})
 
-    # 1) Páginas de Tabloide e Ofertas (direto + via Google Translate proxy)
     fontes_html = [
         "https://taticobaratotododia.com.br/gyn/tabloide/",
         "https://taticobaratotododia.com.br/gyn/ofertas/",
@@ -456,7 +488,6 @@ def descobrir_imagens_tatico():
         except Exception:
             pass
 
-    # 2) API REST de Mídia do WordPress (direto + via Google Translate proxy)
     fontes_api = [
         "https://taticobaratotododia.com.br/gyn/wp-json/wp/v2/media?per_page=20",
         "https://taticobaratotododia-com-br.translate.goog/gyn/wp-json/wp/v2/media?per_page=20&_x_tr_sl=auto&_x_tr_tl=pt&_x_tr_hl=pt-BR",
@@ -544,7 +575,6 @@ def coletar_loja(page, loja, estado, run, hoje, forcar_releitura=False):
             except PWTimeout:
                 pass
 
-            # No Assaí, aguarda o JSON de encartes (ofertas_assai.json) carregar no Drupal
             if "assai.com.br" in u_pag:
                 try:
                     page.wait_for_function(
@@ -581,14 +611,12 @@ def coletar_loja(page, loja, estado, run, hoje, forcar_releitura=False):
         except Exception as e:
             log(f"  ! Aviso ao abrir {u_pag}: {str(e)[:120]}")
 
-    # Se for Tatico e o acesso direto não trouxe encartes de 2025+, busca via descoberta direta/proxy
     if nome == "Tatico":
         imagens = [i for i in imagens if re.search(r"/uploads/202[5-9]/", i.get("url") or "")]
         if not imagens:
             log("  ! Buscando encartes do Tatico Goiânia via rota alternativa (anti-bloqueio)...")
             imagens = descobrir_imagens_tatico()
 
-    # Desduplica imagens mantendo a ordem
     vistos_urls = set()
     imagens_unicas = []
     for i in imagens:
@@ -675,8 +703,8 @@ def coletar_loja(page, loja, estado, run, hoje, forcar_releitura=False):
             enviar_lote()
     enviar_lote()
 
-    # 3) Plano B: prints da página
-    if not ofertas and not tem_texto and (not imagens or (novas and baixadas == 0)):
+    # 3) Plano B: prints da página (apenas se não achou imagens de encarte)
+    if not ofertas and not tem_texto and not imagens:
         if len(texto.strip()) > 300:
             ofertas += [(p, v, url) for p, v in ler_telas(page, nome, url, run, lidos, hoje)]
 
@@ -689,7 +717,6 @@ def carregar_estado():
     try:
         e = json.loads((DADOS / "estado.json").read_text("utf-8"))
         if isinstance(e.get("lidos"), dict):
-            # Limpa entradas antigas inválidas (404, ícones ou miniaturas sem preço)
             lixo = re.compile(r"maskot-404|feed\.png|produto-assets-vipcommerce|/250x250/", re.I)
             e["lidos"] = {k: v for k, v in e["lidos"].items() if not lixo.search(k)}
             return e
