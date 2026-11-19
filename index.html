@@ -3406,8 +3406,7 @@
                 unidade: 'Colemar Natal e Silva',
                 titulo: '',
                 dias: [],
-                ultimo_pdf_url: '',
-                fonte_pagina_url: 'https://prae.ufg.br/p/46332-cardapio-semanal-dos-restaurantes-universitarios',
+                fonte_pagina_url: 'https://ru-ufg.web.ufg.br/tabs/cardapio',
                 atualizado_em: '',
                 palavras_chave: [
                     { termo: 'strogonoff', ativo: true },
@@ -3486,6 +3485,7 @@
                     : [
                         ['Principal', ref.principal],
                         ['Vegetariano', ref.vegetariano],
+                        ['Vegano', ref.vegano],
                         ['Guarnição', ref.guarnicao],
                         ['Acompanhamentos', ref.acompanhamentos],
                         ['Salada', ref.salada],
@@ -3517,7 +3517,7 @@
                             <div>
                                 <h2 className="text-base font-bold text-slate-800">🍽️ Cardápio RU — UFG</h2>
                                 <p className="text-xs text-slate-500">
-                                    {config.titulo || 'Aguardando primeira leitura semanal do PDF pela Action'}
+                                    {config.titulo || 'Aguardando primeira coleta semanal do App RU pela Action'}
                                     {config.atualizado_em ? ` • Atualizado em ${config.atualizado_em.slice(0, 10)}` : ''}
                                 </p>
                             </div>
@@ -3530,15 +3530,9 @@
                                     <option value="Colemar Natal e Silva">RU Colemar Natal e Silva</option>
                                     <option value="Samambaia">RU Samambaia</option>
                                 </select>
-                                {config.ultimo_pdf_url && (
-                                    <a href={config.ultimo_pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs bg-violet-50 text-violet-700 font-bold px-3 py-1.5 rounded-xl hover:bg-violet-100 inline-flex items-center gap-1">
-                                        <Icon name="external-link" className="w-3.5 h-3.5" />
-                                        <span>Conferir PDF oficial</span>
-                                    </a>
-                                )}
-                                <a href={config.fonte_pagina_url || 'https://prae.ufg.br/p/46332-cardapio-semanal-dos-restaurantes-universitarios'} target="_blank" rel="noopener noreferrer" className="text-xs bg-slate-100 text-slate-700 font-bold px-3 py-1.5 rounded-xl hover:bg-slate-200 inline-flex items-center gap-1">
+                                <a href={config.fonte_pagina_url || 'https://ru-ufg.web.ufg.br/tabs/cardapio'} target="_blank" rel="noopener noreferrer" className="text-xs bg-violet-50 text-violet-700 font-bold px-3 py-1.5 rounded-xl hover:bg-violet-100 inline-flex items-center gap-1">
                                     <Icon name="external-link" className="w-3.5 h-3.5" />
-                                    <span>Conferir na fonte (PRAE)</span>
+                                    <span>Abrir App RU (UFG)</span>
                                 </a>
                             </div>
                         </div>
@@ -3601,6 +3595,7 @@
                                                 {ehHoje && <span className="text-[10px] font-bold bg-violet-700 text-white px-2 py-0.5 rounded-full">HOJE</span>}
                                             </div>
                                         </div>
+                                        {d.cafe_manha && renderRefeicao('Café da Manhã', d.cafe_manha)}
                                         {renderRefeicao('Almoço', d.almoco)}
                                         {renderRefeicao('Jantar', d.jantar)}
                                     </div>
