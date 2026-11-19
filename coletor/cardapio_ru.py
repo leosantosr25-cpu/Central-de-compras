@@ -174,18 +174,29 @@ def texto_refeicao(ref):
 
 
 def notificar_whatsapp(mensagem):
-    telefone = (os.environ.get("WHATSAPP_PHONE") or "").strip()
-    api_key = (os.environ.get("CALLMEBOT_API_KEY") or "").strip()
-    if not telefone or not api_key:
+    """Envia a mensagem para todos os números configurados (separados por vírgula)."""
+    telefones = [t.strip() for t in (os.environ.get("WHATSAPP_PHONE") or "").split(",") if t.strip()]
+    api_keys = [k.strip() for k in (os.environ.get("CALLMEBOT_API_KEY") or "").split(",") if k.strip()]
+    if not telefones or not api_keys:
         log("! WHATSAPP_PHONE ou CALLMEBOT_API_KEY não configurados; pulando envio.")
         return False
+    if len(telefones) != len(api_keys):
+        log(f"! WHATSAPP_PHONE tem {len(telefones)} número(s) mas CALLMEBOT_API_KEY tem {len(api_keys)} chave(s). "
+            "Separe por vírgula na mesma ordem. Enviando apenas para os pares válidos.")
 
+    enviados = 0
     texto_cod = urllib.parse.quote(mensagem)
-    url = f"https://api.callmebot.com/whatsapp.php?phone={telefone}&text={texto_cod}&apikey={api_key}"
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        log(f"WhatsApp enviado (HTTP {r.status}).")
-    return True
+    for i, (tel, key) in enumerate(zip(telefones, api_keys)):
+        url = f"https://api.callmebot.com/whatsapp.php?phone={tel}&text={texto_cod}&apikey={key}"
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                log(f"WhatsApp do RU enviado para {tel} (HTTP {r.status}).")
+                enviados += 1
+        except Exception as e:
+            log(f"! Falha ao enviar WhatsApp para {tel}: {str(e)[:150]}")
+
+    return enviados > 0
 
 
 def main():
