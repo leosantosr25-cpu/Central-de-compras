@@ -1,0 +1,39 @@
+name: Notificações Diárias WhatsApp (Validades e RU)
+
+on:
+  schedule:
+    # Roda todos os dias às 07:30 (horário de Brasília, UTC-3 = 10:30 UTC)
+    - cron: '30 10 * * *'
+  workflow_dispatch:
+
+jobs:
+  notificar:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependência do Firebase
+        run: pip install firebase-admin
+
+      - name: Verificar itens vencendo hoje e enviar WhatsApp
+        env:
+          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
+          WHATSAPP_PHONE: ${{ secrets.WHATSAPP_PHONE }}
+          CALLMEBOT_API_KEY: ${{ secrets.CALLMEBOT_API_KEY }}
+        run: python coletor/notificar_vencimentos.py
+
+      - name: Verificar cardápio do RU e enviar WhatsApp
+        if: always()
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.8-flash' }}
+          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
+          WHATSAPP_PHONE: ${{ secrets.WHATSAPP_PHONE }}
+          CALLMEBOT_API_KEY: ${{ secrets.CALLMEBOT_API_KEY }}
+        run: python coletor/cardapio_ru.py
