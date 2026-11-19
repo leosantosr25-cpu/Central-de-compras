@@ -41,22 +41,34 @@ def inferir_local_estoque(prod, lote):
 
 
 def enviar_whatsapp(mensagem):
-    telefone = (os.environ.get("WHATSAPP_PHONE") or "").strip()
-    api_key = (os.environ.get("CALLMEBOT_API_KEY") or "").strip()
-    if not telefone or not api_key:
+    """Envia a mensagem para todos os números configurados (separados por vírgula)."""
+    telefones = [t.strip() for t in (os.environ.get("WHATSAPP_PHONE") or "").split(",") if t.strip()]
+    api_keys = [k.strip() for k in (os.environ.get("CALLMEBOT_API_KEY") or "").split(",") if k.strip()]
+    if not telefones or not api_keys:
         log("! WHATSAPP_PHONE ou CALLMEBOT_API_KEY não configurados; pulando envio.")
         return False
+    if len(telefones) != len(api_keys):
+        log(f"! WHATSAPP_PHONE tem {len(telefones)} número(s) mas CALLMEBOT_API_KEY tem {len(api_keys)} chave(s). "
+            "Separe por vírgula na mesma ordem. Enviando apenas para os pares válidos.")
 
-    url = (
-        "https://api.callmebot.com/whatsapp.php"
-        f"?phone={urllib.parse.quote(telefone)}"
-        f"&text={urllib.parse.quote(mensagem)}"
-        f"&apikey={urllib.parse.quote(api_key)}"
-    )
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        log(f"WhatsApp de vencimentos enviado (HTTP {r.status}).")
-    return True
+    enviados = 0
+    texto_cod = urllib.parse.quote(mensagem)
+    for i, (tel, key) in enumerate(zip(telefones, api_keys)):
+        url = (
+            "https://api.callmebot.com/whatsapp.php"
+            f"?phone={urllib.parse.quote(tel)}"
+            f"&text={texto_cod}"
+            f"&apikey={urllib.parse.quote(key)}"
+        )
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                log(f"WhatsApp de vencimentos enviado para {tel} (HTTP {r.status}).")
+                enviados += 1
+        except Exception as e:
+            log(f"! Falha ao enviar WhatsApp para {tel}: {str(e)[:150]}")
+
+    return enviados > 0
 
 
 def main():
