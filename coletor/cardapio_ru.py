@@ -161,14 +161,46 @@ def mapear_categorias(categorias):
     return resultado
 
 
+def resolver_data(valor):
+    """Converte o campo data da API para dd/MM (pode ser timestamp ms, ISO string, etc.)."""
+    if isinstance(valor, (int, float)):
+        try:
+            # Timestamps em ms (Java/JS style)
+            if valor > 1e12:
+                valor = valor / 1000
+            dt = datetime.fromtimestamp(valor, tz=FUSO)
+            return dt.strftime("%d/%m")
+        except Exception:
+            return str(valor)
+    s = str(valor or "").strip()
+    # Se vier como ISO "2026-11-19T..." ou "2026-11-19", extrair dd/MM
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})", s)
+    if m:
+        return f"{m.group(3)}/{m.group(2)}"
+    return s
+
+
+def resolver_dia_semana(valor):
+    """Converte o campo diaSemana da API (pode ser int ou string) para nome legível."""
+    if isinstance(valor, int):
+        if 0 <= valor < len(DIAS_SEMANA):
+            return DIAS_SEMANA[valor]
+        return f"Dia {valor}"
+    return str(valor or "").strip()
+
+
 def montar_semana(almoco_api, jantar_api):
     """Combina as respostas de almoço e jantar num único array de dias."""
     dias_map = {}
 
     for refeicao_key, dados_api in [("almoco", almoco_api), ("jantar", jantar_api)]:
+        if dados_api:
+            log(f"  API {refeicao_key}: {len(dados_api)} dia(s). "
+                f"Exemplo diaSemana={dados_api[0].get('diaSemana')!r} "
+                f"({type(dados_api[0].get('diaSemana')).__name__})")
         for dia in (dados_api or []):
-            dia_semana = dia.get("diaSemana", "").strip()
-            data_raw = str(dia.get("data", "")).strip()
+            dia_semana = resolver_dia_semana(dia.get("diaSemana"))
+            data_raw = resolver_data(dia.get("data"))
             if not dia_semana:
                 continue
 
