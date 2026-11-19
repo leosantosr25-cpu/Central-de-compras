@@ -1,22 +1,22 @@
 {
- "quando": "2026-11-19T14:00:39-03:00",
- "chamadas_ia": 4,
+ "quando": "2026-11-19T14:54:21-03:00",
+ "chamadas_ia": 8,
  "limite_atingido": false,
  "parou_por_tempo": false,
  "erro_ia": "",
- "ofertas_novas": 88,
+ "ofertas_novas": 99,
  "lojas": {
   "Tatico": {
-   "imagens": 1,
-   "imagens_novas": 1,
-   "imagens_lidas": 0,
-   "ofertas": 0
+   "imagens": 27,
+   "imagens_novas": 27,
+   "imagens_lidas": 6,
+   "ofertas": 68
   },
   "Pro Brazilian": {
    "imagens": 0,
    "imagens_novas": 0,
    "imagens_lidas": 0,
-   "ofertas": 20
+   "ofertas": 0
   },
   "Assaí": {
    "imagens": 12,
@@ -25,10 +25,10 @@
    "ofertas": 0
   },
   "Costa Atacadão": {
-   "imagens": 15,
-   "imagens_novas": 6,
+   "imagens": 16,
+   "imagens_novas": 4,
    "imagens_lidas": 3,
-   "ofertas": 68
+   "ofertas": 31
   }
  }
 }
