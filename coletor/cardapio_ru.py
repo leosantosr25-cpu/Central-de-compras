@@ -33,11 +33,6 @@ FUSO = ZoneInfo("America/Sao_Paulo")
 USER_AGENT = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
 
-DIAS_SEMANA = [
-    "Segunda-feira", "Terça-feira", "Quarta-feira",
-    "Quinta-feira", "Sexta-feira", "Sábado", "Domingo",
-]
-
 
 def log(*args):
     print(*args, flush=True)
@@ -161,32 +156,58 @@ def mapear_categorias(categorias):
     return resultado
 
 
-def resolver_data(valor):
-    """Converte o campo data da API para dd/MM (pode ser timestamp ms, ISO string, etc.)."""
+NOMES_DIA = {
+    0: "Segunda-feira", 1: "Terça-feira", 2: "Quarta-feira",
+    3: "Quinta-feira", 4: "Sexta-feira", 5: "Sábado", 6: "Domingo",
+}
+
+
+def _parse_data_to_date(valor):
+    """Converte o campo 'data' da API para um objeto date."""
     if isinstance(valor, (int, float)):
+        ts = valor / 1000 if valor > 1e12 else valor
         try:
-            # Timestamps em ms (Java/JS style)
-            if valor > 1e12:
-                valor = valor / 1000
-            dt = datetime.fromtimestamp(valor, tz=FUSO)
-            return dt.strftime("%d/%m")
+            return datetime.fromtimestamp(ts, tz=FUSO).date()
         except Exception:
-            return str(valor)
+            return None
     s = str(valor or "").strip()
-    # Se vier como ISO "2026-11-19T..." ou "2026-11-19", extrair dd/MM
+    if not s:
+        return None
+    # ISO "2026-11-19T..." ou "2026-11-19"
     m = re.match(r"(\d{4})-(\d{2})-(\d{2})", s)
     if m:
-        return f"{m.group(3)}/{m.group(2)}"
-    return s
+        from datetime import date as _date
+        try:
+            return _date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            return None
+    return None
 
 
-def resolver_dia_semana(valor):
-    """Converte o campo diaSemana da API (pode ser int ou string) para nome legível."""
-    if isinstance(valor, int):
-        if 0 <= valor < len(DIAS_SEMANA):
-            return DIAS_SEMANA[valor]
-        return f"Dia {valor}"
-    return str(valor or "").strip()
+def resolver_data_e_dia(dia_api):
+    """Retorna (data_str_dd_mm, dia_semana_nome) a partir de um item da API."""
+    dt = _parse_data_to_date(dia_api.get("data"))
+    if dt:
+        data_str = dt.strftime("%d/%m")
+        dia_nome = NOMES_DIA.get(dt.weekday(), f"Dia {dt.weekday()}")
+        return data_str, dia_nome
+
+    # Fallback: usar diaSemana da API (convenção JS: 0=Domingo)
+    ds = dia_api.get("diaSemana")
+    data_raw = str(dia_api.get("data", "")).strip()
+    if isinstance(ds, int):
+        js_map = {0: "Domingo", 1: "Segunda-feira", 2: "Terça-feira",
+                  3: "Quarta-feira", 4: "Quinta-feira", 5: "Sexta-feira",
+                  6: "Sábado"}
+        return data_raw, js_map.get(ds, f"Dia {ds}")
+    return data_raw, str(ds or "").strip()
+
+
+def refeicao_tem_conteudo(mapeado):
+    """Retorna True se o dict de refeição tem pelo menos 1 campo com texto."""
+    if not isinstance(mapeado, dict):
+        return False
+    return any(str(v or "").strip() for v in mapeado.values())
 
 
 def montar_semana(almoco_api, jantar_api):
@@ -195,29 +216,54 @@ def montar_semana(almoco_api, jantar_api):
 
     for refeicao_key, dados_api in [("almoco", almoco_api), ("jantar", jantar_api)]:
         if dados_api:
+            ex = dados_api[0]
             log(f"  API {refeicao_key}: {len(dados_api)} dia(s). "
-                f"Exemplo diaSemana={dados_api[0].get('diaSemana')!r} "
-                f"({type(dados_api[0].get('diaSemana')).__name__})")
+                f"Exemplo: diaSemana={ex.get('diaSemana')!r} "
+                f"data={ex.get('data')!r} "
+                f"categorias={len(ex.get('categorias') or [])} cat(s)")
         for dia in (dados_api or []):
-            dia_semana = resolver_dia_semana(dia.get("diaSemana"))
-            data_raw = resolver_data(dia.get("data"))
-            if not dia_semana:
+            data_str, dia_nome = resolver_data_e_dia(dia)
+            if not dia_nome:
                 continue
 
-            if dia_semana not in dias_map:
-                dias_map[dia_semana] = {
-                    "dia_semana": dia_semana,
-                    "data": data_raw,
+            # Chave única por dia (data é mais confiável que nome)
+            chave = data_str if data_str else dia_nome
+
+            if chave not in dias_map:
+                dias_map[chave] = {
+                    "dia_semana": dia_nome,
+                    "data": data_str,
                 }
 
             categorias = dia.get("categorias")
             if categorias:
-                dias_map[dia_semana][refeicao_key] = mapear_categorias(categorias)
+                mapeado = mapear_categorias(categorias)
+                if refeicao_tem_conteudo(mapeado):
+                    dias_map[chave][refeicao_key] = mapeado
+                    log(f"    {dia_nome} ({data_str}) {refeicao_key}: "
+                        f"{len(mapeado)} campo(s)")
+                else:
+                    log(f"    {dia_nome} ({data_str}) {refeicao_key}: "
+                        f"categorias presentes mas sem itens — ignorado")
             else:
-                dias_map[dia_semana][refeicao_key] = {}
+                log(f"    {dia_nome} ({data_str}) {refeicao_key}: "
+                    f"sem categorias — ignorado")
 
-    ordem = {d: i for i, d in enumerate(DIAS_SEMANA)}
-    return sorted(dias_map.values(), key=lambda d: ordem.get(d["dia_semana"], 99))
+    # Filtrar dias sem nenhuma refeição real
+    dias_com_conteudo = []
+    for d in dias_map.values():
+        tem = (refeicao_tem_conteudo(d.get("almoco"))
+               or refeicao_tem_conteudo(d.get("jantar"))
+               or refeicao_tem_conteudo(d.get("cafe_manha")))
+        if tem:
+            dias_com_conteudo.append(d)
+        else:
+            log(f"    {d.get('dia_semana')} ({d.get('data')}): "
+                f"nenhuma refeição com conteúdo — removido (feriado/fechado)")
+
+    ordem_map = {nome: i for i, nome in NOMES_DIA.items()}
+    return sorted(dias_com_conteudo,
+                  key=lambda d: ordem_map.get(d["dia_semana"], 99))
 
 
 # ─── WhatsApp via CallMeBot ─────────────────────────────────────────────────
@@ -343,7 +389,7 @@ def main():
         return 0
 
     dias_cardapio = dados.get("dias") or []
-    dia_hoje = DIAS_SEMANA[agora.weekday()]
+    dia_hoje = NOMES_DIA[agora.weekday()]
     data_ddmm = agora.strftime("%d/%m")
 
     dia_obj = None
