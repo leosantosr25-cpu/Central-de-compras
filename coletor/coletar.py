@@ -37,7 +37,7 @@ from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 RAIZ = Path(__file__).resolve().parent.parent
 DADOS = RAIZ / "dados"
 FUSO = ZoneInfo("America/Sao_Paulo")
-CAMPOS = ["data", "supermercado", "produto", "marca", "preco", "validade", "link"]
+CAMPOS = ["data", "supermercado", "produto", "marca", "preco", "validade", "link", "id_item_estoque"]
 VIEW_W = 1366
 USER_AGENT = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
@@ -818,10 +818,108 @@ def mesclar(existentes, novas, hoje):
             "preco": l.get("preco", ""),
             "validade": validade_l,
             "link": l.get("link", ""),
+            "id_item_estoque": l.get("id_item_estoque", ""),
         })
 
     saida.sort(key=lambda l: (l["data"], l["supermercado"], l["produto"]))
     return saida
+
+
+def carregar_itens_estoque_firestore():
+    """Lê os itens cadastrados no estoque (casas/familia/products e fallback estoque) no Firestore."""
+    cred_raw = (os.environ.get("FIREBASE_CREDENTIALS") or "").strip()
+    if not cred_raw:
+        return []
+    try:
+        import firebase_admin
+        from firebase_admin import credentials, firestore
+        cred_dict = json.loads(cred_raw)
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(credentials.Certificate(cred_dict))
+        db = firestore.client()
+        casa_ref = db.collection("casas").document("familia")
+        itens = {}
+        for col_nome in ("products", "estoque"):
+            try:
+                for doc in casa_ref.collection(col_nome).stream():
+                    d = doc.to_dict() or {}
+                    nome = str(d.get("name") or d.get("nome") or "").strip()
+                    if nome and doc.id not in itens:
+                        itens[doc.id] = {"id": doc.id, "nome": nome}
+            except Exception as e_col:
+                log(f"  ! leitura coleção {col_nome}: {str(e_col)[:120]}")
+        return list(itens.values())
+    except Exception as e:
+        log(f"  ! estoque Firestore indisponível para cruzamento: {str(e)[:150]}")
+        return []
+
+
+def cruzar_nomes_com_estoque(novas, run):
+    """Vincula id_item_estoque às ofertas raspadas usando Gemini API (JSON estruturado)."""
+    if not novas or run.get("parar"):
+        return
+    itens_estoque = carregar_itens_estoque_firestore()
+    if not itens_estoque:
+        return
+
+    nomes_pendentes = list(dict.fromkeys(
+        str(l.get("produto", "")).strip()
+        for l in novas
+        if str(l.get("produto", "")).strip() and not l.get("id_item_estoque")
+    ))
+    if not nomes_pendentes:
+        return
+
+    estoque_txt = json.dumps(itens_estoque, ensure_ascii=False)
+    mapa_ids = {}
+    valid_ids = {it["id"] for it in itens_estoque}
+
+    for i in range(0, len(nomes_pendentes), 80):
+        if run.get("parar") or run.get("chamadas", 0) >= LIMITE_CHAMADAS:
+            break
+        if time.time() - run.get("inicio", time.time()) > TEMPO_MAX:
+            break
+        lote_nomes = nomes_pendentes[i:i + 80]
+        prompt = (
+            "Você faz correspondência entre nomes de ofertas de supermercado (frequentemente abreviados ou com marcas) "
+            "e itens do estoque doméstico.\n\n"
+            f"ITENS DO ESTOQUE (id e nome):\n{estoque_txt}\n\n"
+            f"NOMES DAS OFERTAS:\n{json.dumps(lote_nomes, ensure_ascii=False)}\n\n"
+            'Responda APENAS um JSON no formato: '
+            '{"matches": [{"produto_oferta": "nome exato da oferta", "id_item_estoque": "id correspondente ou string vazia"}]}.\n'
+            "Regras:\n"
+            "- Vincule mesmo quando houver abreviação, marca diferente ou variação de peso próxima, desde que seja claramente o mesmo produto.\n"
+            "- Use \"\" em id_item_estoque se não houver correspondência clara com nenhum item do estoque.\n"
+            "- Inclua todos os nomes da lista de ofertas."
+        )
+        try:
+            if run.get("chamadas", 0) > 0:
+                time.sleep(PAUSA)
+            run["chamadas"] = run.get("chamadas", 0) + 1
+            resp = chamar_gemini([{"text": prompt}])
+            matches = resp.get("matches") if isinstance(resp, dict) else (resp if isinstance(resp, list) else [])
+            for m in matches or []:
+                if not isinstance(m, dict):
+                    continue
+                p_of = str(m.get("produto_oferta") or "").strip()
+                id_est = str(m.get("id_item_estoque") or "").strip()
+                if p_of and id_est in valid_ids:
+                    mapa_ids[p_of] = id_est
+        except Exception as e:
+            log(f"  ! cruzamento IA com estoque: {str(e)[:150]}")
+            break
+
+    vinculados = 0
+    for l in novas:
+        if not l.get("id_item_estoque"):
+            id_match = mapa_ids.get(str(l.get("produto", "")).strip(), "")
+            if id_match:
+                l["id_item_estoque"] = id_match
+                vinculados += 1
+            else:
+                l["id_item_estoque"] = ""
+    if vinculados:
+        log(f"  -> Cruzamento IA vinculou {vinculados} oferta(s) ao estoque.")
 
 
 def gravar_resultados(estado, novas, resumo, run, hoje):
@@ -880,6 +978,7 @@ def main():
                         "preco": f"{preco:.2f}",
                         "validade": validade,
                         "link": link,
+                        "id_item_estoque": "",
                     })
                     mercados_com_oferta.add(loja["nome"])
                 log(f"  -> {resumo[loja['nome']]}")
@@ -891,6 +990,7 @@ def main():
                 gravar_resultados(estado, novas, resumo, run, hoje)
         navegador.close()
 
+    cruzar_nomes_com_estoque(novas, run)
     gravar_resultados(estado, novas, resumo, run, hoje)
     log(f"Concluído: {len(novas)} oferta(s) lida(s), {run['chamadas']} chamada(s) à IA.")
 
