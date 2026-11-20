@@ -1,0 +1,375 @@
+[
+  {
+    "id": "arroz-feijao",
+    "nome": "Arroz com Feijão",
+    "categoria": "Pratos principais",
+    "tempo_preparo": "40 min",
+    "porcoes": 4,
+    "ingredientes": [
+      {"nome_generico": "Arroz branco", "quantidade": 2, "unidade": "xícara"},
+      {"nome_generico": "Feijão carioca", "quantidade": 1, "unidade": "xícara"},
+      {"nome_generico": "Alho", "quantidade": 3, "unidade": "dente"},
+      {"nome_generico": "Cebola", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Óleo de soja", "quantidade": 2, "unidade": "colher de sopa"},
+      {"nome_generico": "Sal", "quantidade": 1, "unidade": "a gosto"}
+    ],
+    "modo_preparo": [
+      "Lave o arroz e reserve. Cozinhe o feijão na panela de pressão por cerca de 25 min.",
+      "Refogue metade do alho e a cebola no óleo.",
+      "Acrescente o arroz e refogue por 1 minuto.",
+      "Adicione água (2x o volume do arroz), sal e cozinhe tampado em fogo baixo até secar.",
+      "Tempere o feijão cozido com o restante do alho frito, sal e sirva."
+    ]
+  },
+  {
+    "id": "macarrao-alho-oleo",
+    "nome": "Macarrão Alho e Óleo",
+    "categoria": "Pratos principais",
+    "tempo_preparo": "20 min",
+    "porcoes": 3,
+    "ingredientes": [
+      {"nome_generico": "Macarrão espaguete", "quantidade": 1, "unidade": "pacote"},
+      {"nome_generico": "Alho", "quantidade": 6, "unidade": "dente"},
+      {"nome_generico": "Azeite de oliva", "quantidade": 4, "unidade": "colher de sopa"},
+      {"nome_generico": "Sal", "quantidade": 1, "unidade": "a gosto"},
+      {"nome_generico": "Cheiro-verde", "quantidade": 1, "unidade": "punhado"}
+    ],
+    "modo_preparo": [
+      "Cozinhe o macarrão em água fervente com sal até ficar al dente e reserve um pouco da água.",
+      "Fatie o alho finamente e doure no azeite em fogo baixo.",
+      "Acrescente o macarrão escorrido à frigideira com o alho.",
+      "Adicione um pouco da água do cozimento para dar brilho e misture bem.",
+      "Finalize com cheiro-verde picado e sirva."
+    ]
+  },
+  {
+    "id": "omelete-simples",
+    "nome": "Omelete Simples",
+    "categoria": "Lanches rápidos",
+    "tempo_preparo": "10 min",
+    "porcoes": 1,
+    "ingredientes": [
+      {"nome_generico": "Ovos", "quantidade": 3, "unidade": "unidade"},
+      {"nome_generico": "Queijo mussarela", "quantidade": 50, "unidade": "g"},
+      {"nome_generico": "Presunto", "quantidade": 50, "unidade": "g"},
+      {"nome_generico": "Tomate", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Manteiga", "quantidade": 1, "unidade": "colher de sopa"},
+      {"nome_generico": "Sal", "quantidade": 1, "unidade": "a gosto"}
+    ],
+    "modo_preparo": [
+      "Bata os ovos com sal.",
+      "Derreta a manteiga na frigideira em fogo médio.",
+      "Despeje os ovos e espalhe uniformemente.",
+      "Quando começar a firmar, adicione queijo, presunto e tomate picado.",
+      "Dobre ao meio e sirva."
+    ]
+  },
+  {
+    "id": "panqueca-carne-moida",
+    "nome": "Panqueca de Carne Moída",
+    "categoria": "Pratos principais",
+    "tempo_preparo": "45 min",
+    "porcoes": 4,
+    "ingredientes": [
+      {"nome_generico": "Farinha de trigo", "quantidade": 1, "unidade": "xícara"},
+      {"nome_generico": "Leite integral", "quantidade": 1, "unidade": "xícara"},
+      {"nome_generico": "Ovos", "quantidade": 2, "unidade": "unidade"},
+      {"nome_generico": "Carne moída", "quantidade": 0.4, "unidade": "kg"},
+      {"nome_generico": "Molho de tomate", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Cebola", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Queijo mussarela", "quantidade": 100, "unidade": "g"}
+    ],
+    "modo_preparo": [
+      "Bata no liquidificador a farinha, leite, ovos e uma pitada de sal.",
+      "Faça discos finos em frigideira antiaderente untada.",
+      "Refogue a cebola, acrescente a carne moída e tempere bem.",
+      "Adicione metade do molho de tomate à carne.",
+      "Recheie cada panqueca, enrole e coloque em uma travessa.",
+      "Cubra com o restante do molho e queijo e leve ao forno por 15 min."
+    ]
+  },
+  {
+    "id": "bolo-simples",
+    "nome": "Bolo Simples",
+    "categoria": "Sobremesas",
+    "tempo_preparo": "50 min",
+    "porcoes": 10,
+    "ingredientes": [
+      {"nome_generico": "Farinha de trigo", "quantidade": 2, "unidade": "xícara"},
+      {"nome_generico": "Açúcar", "quantidade": 1.5, "unidade": "xícara"},
+      {"nome_generico": "Ovos", "quantidade": 3, "unidade": "unidade"},
+      {"nome_generico": "Leite integral", "quantidade": 1, "unidade": "xícara"},
+      {"nome_generico": "Óleo de soja", "quantidade": 0.5, "unidade": "xícara"},
+      {"nome_generico": "Fermento em pó", "quantidade": 1, "unidade": "colher de sopa"}
+    ],
+    "modo_preparo": [
+      "Preaqueça o forno a 180°C e unte uma forma.",
+      "Bata no liquidificador os ovos, açúcar, leite e óleo.",
+      "Transfira para uma tigela e misture a farinha peneirada.",
+      "Adicione o fermento e misture delicadamente.",
+      "Despeje na forma e asse por 35 a 40 min até dourar."
+    ]
+  },
+  {
+    "id": "brigadeiro",
+    "nome": "Brigadeiro",
+    "categoria": "Sobremesas",
+    "tempo_preparo": "25 min",
+    "porcoes": 20,
+    "ingredientes": [
+      {"nome_generico": "Leite condensado", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Achocolatado em pó", "quantidade": 3, "unidade": "colher de sopa"},
+      {"nome_generico": "Manteiga", "quantidade": 1, "unidade": "colher de sopa"}
+    ],
+    "modo_preparo": [
+      "Misture o leite condensado, achocolatado e manteiga em uma panela.",
+      "Cozinhe em fogo médio-baixo mexendo sempre até desgrudar do fundo.",
+      "Transfira para um prato untado e deixe esfriar.",
+      "Enrole as bolinhas com as mãos untadas ou sirva de colher."
+    ]
+  },
+  {
+    "id": "farofa-completa",
+    "nome": "Farofa Completa",
+    "categoria": "Acompanhamentos",
+    "tempo_preparo": "15 min",
+    "porcoes": 4,
+    "ingredientes": [
+      {"nome_generico": "Farinha de mandioca", "quantidade": 2, "unidade": "xícara"},
+      {"nome_generico": "Manteiga", "quantidade": 2, "unidade": "colher de sopa"},
+      {"nome_generico": "Cebola", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Ovos", "quantidade": 2, "unidade": "unidade"},
+      {"nome_generico": "Bacon", "quantidade": 100, "unidade": "g"},
+      {"nome_generico": "Sal", "quantidade": 1, "unidade": "a gosto"}
+    ],
+    "modo_preparo": [
+      "Frite o bacon picado até ficar crocante.",
+      "Na mesma panela, refogue a cebola picada.",
+      "Adicione a manteiga e os ovos, mexendo rápido para fazer ovos mexidos.",
+      "Acrescente a farinha de mandioca e mexa até dourar levemente.",
+      "Ajuste o sal e sirva."
+    ]
+  },
+  {
+    "id": "frango-grelhado",
+    "nome": "Frango Grelhado",
+    "categoria": "Pratos principais",
+    "tempo_preparo": "25 min",
+    "porcoes": 2,
+    "ingredientes": [
+      {"nome_generico": "Peito de frango", "quantidade": 0.4, "unidade": "kg"},
+      {"nome_generico": "Limão", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Alho", "quantidade": 2, "unidade": "dente"},
+      {"nome_generico": "Azeite de oliva", "quantidade": 2, "unidade": "colher de sopa"},
+      {"nome_generico": "Sal", "quantidade": 1, "unidade": "a gosto"},
+      {"nome_generico": "Pimenta-do-reino", "quantidade": 1, "unidade": "a gosto"}
+    ],
+    "modo_preparo": [
+      "Tempere os filés de frango com limão, alho amassado, azeite, sal e pimenta.",
+      "Deixe descansar por 15 minutos para pegar sabor.",
+      "Aqueça bem uma frigideira antiaderente ou grill.",
+      "Grelhe por 5 a 6 minutos de cada lado até dourar.",
+      "Deixe descansar 3 minutos antes de fatiar."
+    ]
+  },
+  {
+    "id": "strogonoff-frango",
+    "nome": "Strogonoff de Frango",
+    "categoria": "Pratos principais",
+    "tempo_preparo": "35 min",
+    "porcoes": 4,
+    "ingredientes": [
+      {"nome_generico": "Peito de frango", "quantidade": 0.5, "unidade": "kg"},
+      {"nome_generico": "Creme de leite", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Ketchup", "quantidade": 3, "unidade": "colher de sopa"},
+      {"nome_generico": "Mostarda", "quantidade": 1, "unidade": "colher de sopa"},
+      {"nome_generico": "Cebola", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Óleo de soja", "quantidade": 1, "unidade": "colher de sopa"}
+    ],
+    "modo_preparo": [
+      "Corte o frango em cubos e tempere com sal.",
+      "Refogue a cebola no óleo e doure os cubos de frango.",
+      "Adicione o ketchup e a mostarda e misture bem.",
+      "Cozinhe em fogo baixo por 5 minutos.",
+      "Desligue o fogo, junte o creme de leite, misture e sirva."
+    ]
+  },
+  {
+    "id": "salada-basica",
+    "nome": "Salada Básica",
+    "categoria": "Acompanhamentos",
+    "tempo_preparo": "10 min",
+    "porcoes": 2,
+    "ingredientes": [
+      {"nome_generico": "Alface", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Tomate", "quantidade": 2, "unidade": "unidade"},
+      {"nome_generico": "Cebola", "quantidade": 0.5, "unidade": "unidade"},
+      {"nome_generico": "Azeite de oliva", "quantidade": 1, "unidade": "colher de sopa"},
+      {"nome_generico": "Limão", "quantidade": 0.5, "unidade": "unidade"},
+      {"nome_generico": "Sal", "quantidade": 1, "unidade": "a gosto"}
+    ],
+    "modo_preparo": [
+      "Higienize as folhas de alface e rasgue em pedaços.",
+      "Fatie os tomates e a cebola em rodelas finas.",
+      "Arrume em uma saladeira.",
+      "Tempere com azeite, limão e sal apenas na hora de servir."
+    ]
+  },
+  {
+    "id": "vitamina-banana",
+    "nome": "Vitamina de Banana",
+    "categoria": "Lanches rápidos",
+    "tempo_preparo": "5 min",
+    "porcoes": 1,
+    "ingredientes": [
+      {"nome_generico": "Banana", "quantidade": 2, "unidade": "unidade"},
+      {"nome_generico": "Leite integral", "quantidade": 300, "unidade": "ml"},
+      {"nome_generico": "Açúcar", "quantidade": 1, "unidade": "colher de sopa"},
+      {"nome_generico": "Aveia em flocos", "quantidade": 2, "unidade": "colher de sopa"}
+    ],
+    "modo_preparo": [
+      "Descasque as bananas e coloque no liquidificador.",
+      "Adicione leite, açúcar e aveia.",
+      "Bata por 1 a 2 minutos até ficar homogêneo e cremoso.",
+      "Sirva imediatamente."
+    ]
+  },
+  {
+    "id": "sanduiche-natural",
+    "nome": "Sanduíche Natural",
+    "categoria": "Lanches rápidos",
+    "tempo_preparo": "15 min",
+    "porcoes": 2,
+    "ingredientes": [
+      {"nome_generico": "Pão de forma", "quantidade": 4, "unidade": "fatia"},
+      {"nome_generico": "Peito de frango", "quantidade": 0.15, "unidade": "kg"},
+      {"nome_generico": "Cenoura", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Milho verde", "quantidade": 3, "unidade": "colher de sopa"},
+      {"nome_generico": "Maionese", "quantidade": 2, "unidade": "colher de sopa"},
+      {"nome_generico": "Alface", "quantidade": 2, "unidade": "folha"}
+    ],
+    "modo_preparo": [
+      "Cozinhe e desfie o peito de frango.",
+      "Rale a cenoura fina.",
+      "Misture o frango, cenoura, milho e maionese até formar um patê.",
+      "Monte os sanduíches com o patê e folhas de alface."
+    ]
+  },
+  {
+    "id": "tapioca-recheada",
+    "nome": "Tapioca Recheada",
+    "categoria": "Lanches rápidos",
+    "tempo_preparo": "10 min",
+    "porcoes": 1,
+    "ingredientes": [
+      {"nome_generico": "Goma de tapioca", "quantidade": 3, "unidade": "colher de sopa"},
+      {"nome_generico": "Queijo mussarela", "quantidade": 50, "unidade": "g"},
+      {"nome_generico": "Presunto", "quantidade": 50, "unidade": "g"}
+    ],
+    "modo_preparo": [
+      "Peneire a goma de tapioca para soltar os grumos.",
+      "Aqueça uma frigideira antiaderente em fogo médio.",
+      "Espalhe a goma formando um disco uniforme.",
+      "Quando firmar, adicione queijo e presunto de um lado, dobre ao meio e sirva."
+    ]
+  },
+  {
+    "id": "cuscuz-nordestino",
+    "nome": "Cuscuz Nordestino",
+    "categoria": "Lanches rápidos",
+    "tempo_preparo": "15 min",
+    "porcoes": 2,
+    "ingredientes": [
+      {"nome_generico": "Fubá", "quantidade": 2, "unidade": "xícara"},
+      {"nome_generico": "Sal", "quantidade": 1, "unidade": "a gosto"},
+      {"nome_generico": "Manteiga", "quantidade": 1, "unidade": "colher de sopa"},
+      {"nome_generico": "Ovos", "quantidade": 1, "unidade": "unidade"}
+    ],
+    "modo_preparo": [
+      "Hidrate o flocão/fubá com sal e água e deixe descansar por 5 a 10 minutos.",
+      "Coloque na cuscuzeira sem apertar demais.",
+      "Cozinhe no vapor por cerca de 8 minutos até exalar aroma.",
+      "Sirva com manteiga derretida e ovo frito ou cozido."
+    ]
+  },
+  {
+    "id": "suco-laranja",
+    "nome": "Suco Natural de Laranja",
+    "categoria": "Lanches rápidos",
+    "tempo_preparo": "5 min",
+    "porcoes": 2,
+    "ingredientes": [
+      {"nome_generico": "Laranja", "quantidade": 6, "unidade": "unidade"},
+      {"nome_generico": "Açúcar", "quantidade": 2, "unidade": "colher de sopa"}
+    ],
+    "modo_preparo": [
+      "Corte as laranjas ao meio e esprema o suco.",
+      "Adoce se desejar e misture bem.",
+      "Sirva gelado."
+    ]
+  },
+  {
+    "id": "arroz-carreteiro",
+    "nome": "Arroz Carreteiro",
+    "categoria": "Pratos principais",
+    "tempo_preparo": "40 min",
+    "porcoes": 4,
+    "ingredientes": [
+      {"nome_generico": "Arroz branco", "quantidade": 2, "unidade": "xícara"},
+      {"nome_generico": "Carne moída", "quantidade": 0.3, "unidade": "kg"},
+      {"nome_generico": "Cebola", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Alho", "quantidade": 3, "unidade": "dente"},
+      {"nome_generico": "Tomate", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Pimentão", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Cheiro-verde", "quantidade": 1, "unidade": "maço"}
+    ],
+    "modo_preparo": [
+      "Refogue o alho e a cebola no óleo.",
+      "Acrescente a carne e refogue até dourar.",
+      "Adicione o tomate e o pimentão picados.",
+      "Junte o arroz lavado, água quente e sal; cozinhe tampado até secar.",
+      "Finalize com cheiro-verde picado."
+    ]
+  },
+  {
+    "id": "macarrao-bolonhesa",
+    "nome": "Macarrão à Bolonhesa",
+    "categoria": "Pratos principais",
+    "tempo_preparo": "35 min",
+    "porcoes": 4,
+    "ingredientes": [
+      {"nome_generico": "Macarrão espaguete", "quantidade": 1, "unidade": "pacote"},
+      {"nome_generico": "Carne moída", "quantidade": 0.4, "unidade": "kg"},
+      {"nome_generico": "Molho de tomate", "quantidade": 2, "unidade": "unidade"},
+      {"nome_generico": "Cebola", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Alho", "quantidade": 2, "unidade": "dente"},
+      {"nome_generico": "Queijo ralado", "quantidade": 1, "unidade": "unidade"}
+    ],
+    "modo_preparo": [
+      "Cozinhe o macarrão al dente e reserve.",
+      "Refogue alho e cebola no azeite.",
+      "Doure a carne moída com sal e temperos.",
+      "Adicione o molho de tomate e cozinhe em fogo baixo por 15 minutos.",
+      "Sirva sobre o macarrão com queijo ralado."
+    ]
+  },
+  {
+    "id": "pao-de-queijo-rapido",
+    "nome": "Pão de Queijo de Frigideira",
+    "categoria": "Lanches rápidos",
+    "tempo_preparo": "15 min",
+    "porcoes": 2,
+    "ingredientes": [
+      {"nome_generico": "Goma de tapioca", "quantidade": 4, "unidade": "colher de sopa"},
+      {"nome_generico": "Ovos", "quantidade": 1, "unidade": "unidade"},
+      {"nome_generico": "Requeijão cremoso", "quantidade": 2, "unidade": "colher de sopa"},
+      {"nome_generico": "Queijo mussarela", "quantidade": 50, "unidade": "g"},
+      {"nome_generico": "Sal", "quantidade": 1, "unidade": "a gosto"}
+    ],
+    "modo_preparo": [
+      "Misture o ovo, o requeijão, a goma de tapioca, o queijo picado e uma pitada de sal.",
+      "Despeje em frigideira untada em fogo baixo com tampa.",
+      "Doure por cerca de 4 minutos de cada lado e sirva quente."
+    ]
+  }
+]
