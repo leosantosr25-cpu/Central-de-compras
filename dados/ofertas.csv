@@ -1,291 +1,291 @@
-data,supermercado,produto,marca,preco,validade,link
-2026-11-18,Assaí,Amaciante concentrado Comfort fragrâncias unidade 900 ml,,15.90,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Aveia em flocos finos ou regulares Nestlé caixeta 450 g,,10.90,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Bebida láctea Nestlé sabores pet 270 ml,,5.99,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Biscoito Nesfit Nestlé sabores pacote 140 g,,3.59,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Café solúvel Nescafé Nestlé tipos vidro 100 g,,16.90,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Caldo Maggi sabores caixeta 114 g,,4.85,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Caldo Maggi sabores caixeta 35 g,,2.39,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Cereal matinal Kit Kat caixeta 210 g,,10.90,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Cereal matinal Nescau Nestlé caixeta 770 g,,22.90,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Cereal matinal Snow Flakes Nestlé caixeta 800 g,,20.90,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Chocolate Garoto tipos embalagem 90 g,,7.79,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Chocolate Nestlé sabores embalagem 80 g,,7.49,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Chocolate Talento Garoto sabores embalagem 85 g,,7.99,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Cápsula Dolce Gusto Nestlé sabores,,19.90,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Farinha láctea Nestlé pacote 210 g,,6.99,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,"Lava-roupa em pó Brilhante fragrâncias caixeta 1,6 kg",,14.90,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,"Lava-roupa líquido Omo Ação Total ciclo rápido fragrâncias frasco 1,4 l",,21.90,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,"Lava-roupas em pó Surf tipos bag 2,4 kg",,17.90,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Lava-roupas líquido Ação Total ciclo rápido Omo tipos frasco 750 ml,,11.90,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Neston 3 cereais Nestlé pacote 210 g,,7.99,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-18,Assaí,Tira-limo com cloro Cif frasco 500 ml,,11.90,,https://www.assai.com.br/ofertas/goias/assai-independencia
-2026-11-20,Costa Atacadão,Aguardente 51 Tradicional 965ml,51,12.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Aguardente Granadinha 29 Pet 500ml,Granadinha,4.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Aguardente São Francisco 970ml,São Francisco,25.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Aperitivo Aperol 750ml,Aperol,59.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Aperitivo Bitter Campari 748ml,Campari,49.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Aperitivo Black Stone 1L,Black Stone,24.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Aperitivo Paratudo Uberlandia 900ml,Paratudo,17.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Bebida Láctea UHT Pirakids Milkymoo Chicletin TP 200ml,Pirakids,1.29,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Bolo Guarany 360g - Sabores,Guarany,9.89,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Espumante Nacional Casa Perini 750ml - Vários,Casa Perini,59.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Espumante Nacional Chandon 187ml - Vários,Chandon,39.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Lasanha Perdigão 600g - Sabores,Perdigão,13.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Leite Fermentado Itambé Tradicional C/ 6 Unidades 450g,Itambé,5.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Pizza Brotinho Beni 110g - Sabores,Beni,4.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Pizza Média Beni 400g - Sabores,Beni,14.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Presunto Cozido Suíno Aurora S/ Capa de Gordura 180g,Aurora,7.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Pão de Queijo Vó Lia 800g,Vó Lia,9.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Queijo Mussarela Fatiado Piracanjuba 150g,Piracanjuba,7.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Requeijão Cremoso Danone 200g - Tipos,Danone,7.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Vodka Absolut Natural 1L,Absolut,89.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Vodka Intencion Tradicional 900ml,Intencion,18.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Vodka Smirnoff Red 998ml,Smirnoff,29.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Whisky Buchanans Deluxe 1L,Buchanans,189.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Whisky Chivas Regal 12 Anos 750ml,Chivas Regal,89.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Whisky Jack Daniel's Tennessee 1L,Jack Daniel's,139.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Costa Atacadão,Whisky Jack Daniel's Tennessee 700ml,Jack Daniel's,119.99,2026-11-22,https://costaatacadao.com.br/ofertas/
-2026-11-20,Pro Brazilian,Bala De Goma Fini Dentaduras Morango E Framboesa 80g,Fini,5.89,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Bala De Goma Fini Ursinhos 80g,Fini,5.89,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Bala De Goma Tubes Fini Twister Azedinho 80g,Fini,5.89,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Bala De Goma Tubes Fini Uva Cítrico 80g,Fini,5.89,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Biscoito Amanteigado Marilan Leite 280g,Marilan,7.99,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Biscoito Amanteigado Marilan Tradicional 280g,Marilan,7.99,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Chicle De Bola Fini Ovos De Dinossauro 80g,Fini,5.89,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Colher Descartável Para Refeição Junco Cristal 50un,Junco,6.99,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Coxao Duro Bovino Peça (aprox. 500g),,21.50,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,"Cupim Bovino Maturatta (aprox. 1,200kg)",Maturatta,59.88,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Esponja Multiuso Condor Leve 4 Pague 3 Ref:1539 1 Unidade,Condor,4.49,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Filme De Pvc Esticável Alpfilm Transparente 280mmx300m,Alpfilm,59.99,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Lagarto Bovino Peça (aprox. 500g),,21.50,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Linguica Super Frango Chur 1kg Fgo Resf,Super Frango,14.99,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Loção Hidratante Corporal Nivea Soft Milk Pele Seca 400ml,Nivea,24.99,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Marshmallow Camping Fini Formato Flor 80g,Fini,5.89,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Marshmallow De Baunilha Fini Para Assar 80g,Fini,5.89,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Marshmallow Fini Alvorada Baunilha 80g,Fini,5.89,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Marshmallow Fini Coração Baunilha 80g,Fini,5.89,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Pro Brazilian,Peito Bovino Peça (aprox. 600g),,20.39,,https://www.probrazilian.com.br/ofertas
-2026-11-20,Tatico,Absorvente Interno Mili Beauty (8Und),Mili,7.95,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Absorvente Sempre Livre Adapt Plus Suave (8Und),Sempre Livre,5.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Absorvente Sempre Livre Adapt Suave (8Und),Sempre Livre,4.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Absorvente Sempre Livre Especial Suave (Leve 8 E Pague 7),Sempre Livre,4.49,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Aceto Balsâmico Paganini (500ml),Paganini,23.45,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Achocolatado em Pó Toddy Original (370G),Toddy,7.95,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Algodão Bola Cotton Line (95g),Cotton Line,8.95,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Amaciante de Roupa Concentrado Comfort (Leve 500 E Pague 400ML),Comfort,7.85,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Amaciante de Roupa Ypê (2L),Ypê,7.95,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Ameixa Importada (KG),,10.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Aperitivo Aperol Ervas (750ml),Aperol,49.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Arroz Barão Tradicional Tipo 1 (5KG),Barão,23.95,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Arroz Cristal Tradicional Tipo 1 (5kg),Cristal,24.95,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Arroz Garotinho Tradicional Tipo 1 (5KG),Garotinho,19.87,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Arroz Safra Tradicional Tipo 3 (5KG),Safra,16.95,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Auroggets Frango Aurora Crocante (275G),Aurora,6.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Auroggets Frango Aurora Queijo (275g),Aurora,6.98,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Auroggets Frango Aurora Tradicional (275g),Aurora,6.98,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Ave Chester Inteiro Perdigão Tradicional Congelado (kg),Perdigão,35.98,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Ave Fiesta Seara Mediterrânea (kg),Seara,25.98,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Ave Fiesta Seara Orgânica (kg),Seara,26.98,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Ave Fiesta Temperada Seara Congelada (kg),Seara,25.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Ave Super Frango Felicittá Temperada Assa Fácil Congelada (kg),Super Frango,16.97,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Ave Super Frango Felicitá Temperada Assa Fácil Congelada (KG),Super Frango,16.97,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Azeite de Oliva 50% Blend Lisboa com Óleo de Girassol (500ml),Lisboa,11.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Azeite de Oliva Andorinha Extra Virgem (500ml),Andorinha,23.85,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Azeitona Verde Campo Belo Fatiada Pouch (120G),Campo Belo,4.87,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Azeitona Verde La Violetera Com Pimenta Vidro (200G),La Violetera,19.80,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Azeitona Verde Rainha Sachê com Caroço (80G),Rainha,2.79,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Açúcar Cristal União (5kg),União,12.45,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Bacon Aurora Fatiado (500g),Aurora,25.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Bacon Gourmet Seara Tablete (kg),Seara,39.98,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Bacon de Paleta Bonfrigo (KG),Bonfrigo,19.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,"Batata Bem Brasil Mais Batata Tradicional (1,5KG)",Bem Brasil,16.97,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Batata Doce (kg),,3.95,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Batata-Doce (KG),,3.95,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Bebida Bitter Campari (748ML),Campari,39.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Bebida Ice 51 Long Neck (275ml),51 Ice,6.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Bebida Láctea Belagurt (110g),Belagurt,0.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Bebida Láctea Belagurt (480g),Belagurt,3.49,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Bebida Láctea UHT Italac Hershey's TP (250ML),Italac,4.85,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Bebida Mista Skol Beats Lata (269ml),Skol Beats,4.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Bebida Mista Skol Beats Long Neck (269ml),Skol Beats,5.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Bebida Suplementar Legger (520ML),Legger,2.79,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Bebida Suplementar Legger Pet (520ml),Legger,2.79,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Biscoito Cookies Pirakids (60g),Pirakids,2.29,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Biscoito Cookies Rancheiro (60g),Rancheiro,2.29,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Biscoito Jucurutu Tareco (270g),Jucurutu,7.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Biscoito Porto Alegre Champagne (150g),Porto Alegre,5.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Biscoito Recheado Bauducco (140g),Bauducco,2.65,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Biscoito Recheado Parati Bom Bola (101G),Parati,0.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Biscoito Recheado Trakinas Mais (126g),Trakinas,2.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Biscoito Wafer Bauducco Maxi (104g),Bauducco,4.75,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Biscoito Wafer Stick Look (55g),Look,3.29,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Bolinho Bauducco (40G),Bauducco,1.89,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Brócolis Ninja (UND),,5.97,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Café 3 Corações Torrado e Moído (500G),3 Corações,16.97,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Cappuccino Rancheiro (20g),Rancheiro,1.45,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Carne Suína Com Pele E Osso (KG),,8.95,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Catchup Arisco Tradicional (370G),Arisco,6.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Cebola Comum (KG),,6.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Cereal Matinal Kellogg's Sucrilhos Sachê Original (370G),Kellogg's,5.89,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Cereal Matinal Kelloggs Sucrilhos Sachê Original (280g),Kellogg's,5.89,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Cerveja Amstel Sleek Lager Puro Malte Lata (350ml),Amstel,3.39,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Cerveja Antarctica Original Pilsen Lata (350ML),Antarctica,3.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Cerveja Blue Moon Belgian White Long Neck (355ml),Blue Moon,8.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Cerveja Budweiser Pilsen Lata (269ML),Budweiser,2.79,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Cerveja Heineken Sleek Lager Puro Malte Lata (350ml),Heineken,4.78,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Cerveja Patagonia Sleek Amber Lager Lata (350ml),Patagonia,6.49,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Condicionador Elseve (400ml),Elseve,19.90,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Condicionador Seda Kids Juntinhos (300ml),Seda,12.90,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Coxa Sobrecoxa Nutriza Congelada Dorsal (KG),Nutriza,7.95,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Cream Cheese Polenghi (150G),Polenghi,8.97,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Creme De Pentear Dabelle (1kg),Dabelle,21.90,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Creme De Pentear Dabelle (270g),Dabelle,9.90,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Creme De Pentear Elseve (250ml),Elseve,19.90,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Creme Dental Good Smiles Menta com Flúor Fresh (90g),Good Smiles,3.59,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Creme Dental Sensodyne Branco (90g),Sensodyne,8.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Curativo Band-Aid (10Und),Band-Aid,7.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Cápsula Emana Anti-Inflamatório (6OUND),Emana,19.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Cápsula Emana Multivitaminico (30 UND),Emana,19.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Cápsulas de Café La Terre Espresso (10und/52g),La Terre,7.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Cúrcuma Emana Cápsulas Anti-Inflamatório (60und),Emana,19.90,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Desinfetante Oeste (2l),Oeste,3.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Desinfetante Ypê Bak (2L),Ypê,5.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Desodorante Aerosol Bozzano Antitranspirante (150ml),Bozzano,7.90,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Desodorante Aerosol Dove (250ml),Dove,17.90,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Desodorante Aerosol Monange (150ML),Monange,7.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Desodorante Aerosol Monange Antitranspirante (150ml),Monange,7.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Desodorante Aerosol Rexona (250ml),Rexona,17.90,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Detergente Sanitário Triex Gel (7g),Triex,4.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Enxaguante Bucal Listerine Leve Mais e Pague Menos (500ml),Listerine,19.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Escova Dental Unoco Cerdas Médias (3und),Unoco,4.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Esponja De Aço Bombril Eco 1001 Utilidades (5g/6und),Bombril,1.95,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Espuma de Barbear Bozzano (200ml/193g),Bozzano,21.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Extrato de Tomate Elefante Tradicional Nale Pote (300G),Elefante,5.89,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Extrato de Tomate Elefante Tradicional Pote (300g),Elefante,5.89,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Farinha de Trigo Sotrigo Tradicional (1KG),Sotrigo,3.28,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Farinha de Trigo Venturelli (1kg),Venturelli,4.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Feijão Carioca Delícia Tradicional Tipo 1 (1KG),Delícia,7.37,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Feijão Carioca Dona Cota (1kg),Dona Cota,8.75,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Feijão Carioca MC Gold (1KG),MC Gold,5.89,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Feijão Preto Delícia (1KG),Delícia,7.37,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Feijão Rajado Dona Dê Tipo 1 (1KG),Dona Dê,8.95,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Filé de Marapará Douradinha Sabor Rio e Mar Congelado (500g),Sabor Rio e Mar,15.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Fio Dental Fiodent Leve 150m e Pague 100m Blister,Fiodent,4.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Flocão Milho Supimpa (400G),Supimpa,1.49,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Flocão de Milho Supimpa (400G),Supimpa,1.49,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Fralda Descartável Mili Baby Jumbo,Mili,29.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Frango Super Frango Resfriado (KG),Super Frango,7.85,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Fígado de Frango Perdigão Congelado (1kg),Perdigão,5.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Gin Rocks Strawberry (1L),Rocks,29.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Guardanapo Mili Folha Dupla (Und),Mili,6.85,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Hambúrguer Chuletão Misto (56G),Chuletão,0.69,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Imune Emana Cápsula Multivitamínico (30und),Emana,19.90,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Inseticida Aerosol Baygon (360ml),Baygon,13.95,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Iogurte Batavinho Garrafa Com Surpresa (110g),Batavinho,4.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Iogurte Canto Minas (180g),Canto de Minas,3.69,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Iogurte Danone Garrafa Embalagem Econômica (1250g),Danone,12.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Iogurte Danoninho Pouch Morango (70g),Danoninho,2.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Iogurte Frutap (150g),Frutap,2.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Iogurte Frutap Grego (90g),Frutap,2.49,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,"Iogurte Goianinho Garrafa Polpa (1,100g)",Goianinho,7.89,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Iogurte Goianinho Integral (160g),Goianinho,2.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Iogurte Goianinho Misto (100g/10und),Goianinho,10.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Iogurte Goody Looney Tunes Pouch (100G),Goody,2.65,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Iogurte Nestlé Garrafa (1150g),Nestlé,12.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Iogurte Nestlé Garrafa Zero (1150g),Nestlé,13.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Isotônico Powerade - De Pet (500ML),Powerade,3.95,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Isotônico Powerade Pet (500ml),Powerade,3.95,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Jerked Suíno Seara (400g),Seara,17.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Ketchup Predilecta (400G),Predilecta,4.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Kit 3 em 1 Infantil Dentalclean,Dentalclean,19.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Kit Enxaguante Bucal Good Smiles Fresh (500ml) + Creme Dental (90g),Good Smiles,12.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Lasanha Congelada Mamma D'Alva (600G),Mamma D'Alva,7.85,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Lasanha Congelada Mamma Dalva (600g),Mamma Dalva,7.85,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Lava-Louças Líquido Brisa (500ml),Brisa,1.65,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Lava-Roupas Em Pó Omo Todo Ciclo Caixa (2KG),Omo,23.85,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Leite Fermentado Chamyto (6X75G),Chamyto,5.89,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Leite UHT A2 Italac com Tampa TP (1L),Italac,6.49,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Leite em Pó Integral Aurora (400G),Aurora,11.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Limpador Perfumado Casaflor (1L),Casaflor,5.95,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Linguiça Calabresa Seara Defumada (400g),Seara,16.98,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Linguiça Calábrica Sadia (400g),Sadia,12.98,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Linguiça Churrasco Bonfrigo Resfriada (KG),Bonfrigo,13.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Linguiça Mista Sadia Defumada (215g),Sadia,7.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Linguiça Mista Seara Fina Defumada (215g),Seara,8.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Linguiça Suína Aurora Churrasco (kg),Aurora,15.98,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Macarrão Barilla com Ovos (500G),Barilla,4.78,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Macarrão de Sêmola Espaguete Cristal (500G),Cristal,2.65,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Maionese Hellmann's Tradicional Pote (500G),Hellmann's,8.97,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Mamão Papaia (KG),,5.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Mamão Papaya (kg),,5.98,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Manteiga Tirol Pote Com Sal (500G),Tirol,15.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Margarina Claybom Tradicional Com Sal (500G),Claybom,4.78,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Massa de Tapioca Kodilar Tradicional (400G),Kodilar,3.35,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Milho-Verde Etti em Conserva Lata (170G),Etti,2.45,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Mingau Alcabom (200g),Alcabom,4.75,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Mingau Alcabom Farinha Láctea (200g),Alcabom,4.75,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Mini Lasanha Perdigão Bolonhesa (350g),Perdigão,9.97,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Mistura para Bolo Integral Dona Raiz (400g),Dona Raiz,6.89,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Molho de Tomate Pomodoro Tradicional Sem Adição de Açúcar (300G),Pomodoro,0.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Mortadela Tubular Nobre Peça (Kg),Nobre,6.87,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Mostarda Predilecta Tradicional (180g),Predilecta,4.65,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Mussarela Litoral Peça (Kg),Litoral,29.90,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Pack com 6 Sabonete em Barra Banho a Banho,Banho a Banho,11.94,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Palmito Belo Monte Açaizeiro Rodelas Temperado (300g),Belo Monte,19.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Palmito Belo Monte Pupunha (300G),Belo Monte,8.89,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Palmito MC Palmeira Real Inteiro Vidro (300g),MC Palmeira Real,18.89,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Panetone Tatico Frutas (380G),Tatico,6.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Panetone Tatico Gotas de Chocolate (380G),Tatico,7.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Papel Higiênico Stylus Folha Dupla (24 Rolos de 20M),Stylus,15.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Papel Toalha Maxim (400folhas),Maxim,14.85,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Passata Rústica Salsaretti Primeira Colheita (500G),Salsaretti,13.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Pera Portuguesa (KG),,12.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Peru Temperado Sadia Congelado (kg),Sadia,36.48,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Petit Suisse Chambinho (320G),Chambinho,7.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Petit Suisse Goianinho Morango (320g),Goianinho,4.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Pimentão Verde (KG),,6.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Pipoca de Micro-Ondas Velly (90G),Velly,2.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Presunto Seara Fatiado (180G),Seara,9.97,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Protetor Solar FPS60 Kids Minions (120ml),Minions,24.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Pão De Forma Visconti Tradicional (400g),Visconti,6.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Pão de Forma Pullman Tradicional (480G),Pullman,9.90,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Pêssego Nacional (KG),,7.95,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Refresco em Pó Mid (20g),Mid,0.79,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Refrigerante Coca-Cola Lata (220ml),Coca-Cola,2.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Refrigerante Coca-Cola Lata (350ML),Coca-Cola,3.69,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Refrigerante Coca-Cola Lata Triple Lata (350ML),Coca-Cola,3.69,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Refrigerante Coca-Cola Triple Lata (350ml),Coca-Cola,3.69,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Refrigerante Guaraná Antarctica Pet (1L),Guaraná Antarctica,4.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Refrigerante Guaraná Antarctica Pet (600ml),Guaraná Antarctica,4.69,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Refrigerante Kuat Guaraná Pet (2L),Kuat,4.78,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Refrigerante Pepsi Cola Zero Açúcar Lata (350ml),Pepsi,2.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Refrigerante Pepsi Twist Lata (350ml),Pepsi,2.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Repolho Roxo (KG),,3.78,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Requeijão Cremoso Danone (200G),Danone,5.97,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Rosquinha Adoralle de Coco (600g),Adoralle,4.89,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Rosquinha Belma (600G),Belma,3.95,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Sabonete Aerosol Monange Em Barra Antitranspirante Siene (85G),Monange,0.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Sabonete em Barra Siene (85g),Siene,0.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Sabão em Barra Minuano (800G),Minuano,7.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Shampoo Clear Men Leve Mais E Pague Menos (400ml),Clear,24.90,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Shampoo Dabelle (410ml),Dabelle,13.90,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Shampoo Seda Kids (300ml),Seda,11.90,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Sobremesa Nestlé Chandelle Leve Mais E Pague Menos Chocolate (540g),Nestlé,16.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Sobremesa Pudim Rebeka Leite Condensado (120g),Rebeka,3.89,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Steak Seara Frango (100g),Seara,1.89,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,"Suco Del Valle Frut Pet (1,5L)",Del Valle,4.29,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Tempero em Pó Sandella Sachê (50g),Sandella,3.19,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Toalha Umedecida Cotton Line (96Und),Cotton Line,8.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Toalha Umedecida Piquitucho (80Und),Piquitucho,8.49,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Uva Isis Sem Semente (500g),Isis,5.98,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Uva Thompson Sem Semente (500g),,5.98,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Uva Vitória Sem Semente (500g),Vitória,5.98,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,"Uva Ísis, Vitória ou Thompson Sem Semente (748ML)",Ísis,5.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Água Sanitária Oeste (2l),Oeste,4.85,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Água Sanitária Oeste (5l),Oeste,9.98,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Água Sanitária Ypê (5L),Ypê,11.98,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Álcool Líquido Itajá Comum 46 Inpm (1l),Itajá,5.99,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Óleo De Banho Dabelle Óleo Mágico (200ml),Dabelle,19.90,2026-11-20,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Óleo de Oliva Bagaço 100% Gallo Extra Suave (500ML),Gallo,17.99,,https://taticobaratotododia.com.br/gyn/tabloide/
-2026-11-20,Tatico,Óleo de Soja Vila Velha (900ml),Vila Velha,6.17,,https://taticobaratotododia.com.br/gyn/tabloide/
+data,supermercado,produto,marca,preco,validade,link,id_item_estoque
+2026-11-18,Assaí,Amaciante concentrado Comfort fragrâncias unidade 900 ml,,15.90,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Aveia em flocos finos ou regulares Nestlé caixeta 450 g,,10.90,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Bebida láctea Nestlé sabores pet 270 ml,,5.99,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Biscoito Nesfit Nestlé sabores pacote 140 g,,3.59,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Café solúvel Nescafé Nestlé tipos vidro 100 g,,16.90,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Caldo Maggi sabores caixeta 114 g,,4.85,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Caldo Maggi sabores caixeta 35 g,,2.39,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Cereal matinal Kit Kat caixeta 210 g,,10.90,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Cereal matinal Nescau Nestlé caixeta 770 g,,22.90,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Cereal matinal Snow Flakes Nestlé caixeta 800 g,,20.90,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Chocolate Garoto tipos embalagem 90 g,,7.79,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Chocolate Nestlé sabores embalagem 80 g,,7.49,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Chocolate Talento Garoto sabores embalagem 85 g,,7.99,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Cápsula Dolce Gusto Nestlé sabores,,19.90,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Farinha láctea Nestlé pacote 210 g,,6.99,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,"Lava-roupa em pó Brilhante fragrâncias caixeta 1,6 kg",,14.90,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,"Lava-roupa líquido Omo Ação Total ciclo rápido fragrâncias frasco 1,4 l",,21.90,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,"Lava-roupas em pó Surf tipos bag 2,4 kg",,17.90,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Lava-roupas líquido Ação Total ciclo rápido Omo tipos frasco 750 ml,,11.90,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Neston 3 cereais Nestlé pacote 210 g,,7.99,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-18,Assaí,Tira-limo com cloro Cif frasco 500 ml,,11.90,,https://www.assai.com.br/ofertas/goias/assai-independencia,
+2026-11-20,Costa Atacadão,Aguardente 51 Tradicional 965ml,51,12.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Aguardente Granadinha 29 Pet 500ml,Granadinha,4.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Aguardente São Francisco 970ml,São Francisco,25.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Aperitivo Aperol 750ml,Aperol,59.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Aperitivo Bitter Campari 748ml,Campari,49.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Aperitivo Black Stone 1L,Black Stone,24.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Aperitivo Paratudo Uberlandia 900ml,Paratudo,17.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Bebida Láctea UHT Pirakids Milkymoo Chicletin TP 200ml,Pirakids,1.29,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Bolo Guarany 360g - Sabores,Guarany,9.89,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Espumante Nacional Casa Perini 750ml - Vários,Casa Perini,59.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Espumante Nacional Chandon 187ml - Vários,Chandon,39.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Lasanha Perdigão 600g - Sabores,Perdigão,13.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Leite Fermentado Itambé Tradicional C/ 6 Unidades 450g,Itambé,5.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Pizza Brotinho Beni 110g - Sabores,Beni,4.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Pizza Média Beni 400g - Sabores,Beni,14.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Presunto Cozido Suíno Aurora S/ Capa de Gordura 180g,Aurora,7.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Pão de Queijo Vó Lia 800g,Vó Lia,9.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Queijo Mussarela Fatiado Piracanjuba 150g,Piracanjuba,7.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Requeijão Cremoso Danone 200g - Tipos,Danone,7.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Vodka Absolut Natural 1L,Absolut,89.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Vodka Intencion Tradicional 900ml,Intencion,18.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Vodka Smirnoff Red 998ml,Smirnoff,29.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Whisky Buchanans Deluxe 1L,Buchanans,189.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Whisky Chivas Regal 12 Anos 750ml,Chivas Regal,89.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Whisky Jack Daniel's Tennessee 1L,Jack Daniel's,139.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-20,Costa Atacadão,Whisky Jack Daniel's Tennessee 700ml,Jack Daniel's,119.99,2026-11-22,https://costaatacadao.com.br/ofertas/,
+2026-11-21,Pro Brazilian,Alho Poró Nativa,Nativa,2.99,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Café Torrado E Moído Moinho Fino Extra Forte 500g,Moinho Fino,24.99,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Café Torrado E Moído Moinho Fino Tradicional 500g,Moinho Fino,24.99,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Colher Descartável Para Refeição Junco Cristal 50un,Junco,6.99,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Coxao Mole Bovino Peça 500g,,21.50,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,"Cupim Bovino Maturatta 1,200kg",Maturatta,59.88,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Desodorante Antitranspirante Aerossol Dove Men+care Invisible Dry 150ml,Dove,16.99,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Detergente Líquido Minuano Maçã 500ml,Minuano,2.59,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Extrato De Tomate Concentrado Goialli Sachê 340g,Goialli,3.59,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Filme De Pvc Esticável Alpfilm Transparente 280mmx300m,Alpfilm,59.99,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Lagarto Bovino Peça 500g,,20.00,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Laranja Pera Rio 250g,,0.47,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Lava Loucas Minuano 500ml Clear,Minuano,2.59,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Linguica Super Frango Chur 1kg,Super Frango,14.99,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Loção Hidratante Corporal Nivea Soft Milk Pele Seca 400ml,Nivea,24.99,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,"Mamao Formosa 1,8kg",,10.78,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Manga Palmer 450g,,1.57,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Maça Fuji 300g,,1.98,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,"Melao Amarelo 1,5kg",,6.29,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Pro Brazilian,Sabonete Líquido Refil Nivea Erva Doce 200ml,Nivea,6.99,,https://www.probrazilian.com.br/ofertas,
+2026-11-21,Tatico,ABSORVENTE SEMPRE LIVRE ESPECIAL SUAVE (LEVE 8 PAGUE 7),Sempre Livre,3.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,ACENDEDOR PARANÁ BASTÃO 5,Paraná,3.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Absorvente Sempre Livre Especial Suave Leve 8 Pague 7,Sempre Livre,3.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Aguardente Pirassununga 51 965ml,Pirassununga 51,15.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Amaciante de Roupa Ypê 5L,Ypê,19.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Ameixa Importada (kg),,10.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Ameixa Importada kg,,10.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Arroz Barão Tradicional Tipo 1 5kg,Barão,23.95,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Arroz Brejeiro Tradicional Tipo 1 5kg,Brejeiro,21.95,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Arroz Camil Tradicional Tipo 1 5kg,Camil,19.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Arroz Safra Tradicional Tipo 3 5kg,Safra,16.95,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Arroz Urbano 7 Grãos Painço com Arroz 500g,Urbano,7.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Arroz Urbano Tradicional Tipo 1 Integral Selecionado Especial Preto ou Vermelho 500g,Urbano,9.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Auroggets Frango Aurora (275g),Aurora,6.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Auroggets Frango Aurora 275g,Aurora,6.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Ave Chester Inteiro Perdigão Tradicional Congelado (kg),Perdigão,35.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Ave Chester Inteiro Perdigão Tradicional Congelado Com Pele e Osso kg,Perdigão,35.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Ave Fiesta Temperada Seara Congelada (kg),Seara,25.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Ave Fiesta Temperada Seara Congelada kg,Seara,25.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Ave Super Frango Felicita Temperada Assa Fácil Congelada kg,Felicita,16.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Ave Super Frango Felicitá Temperada Assa Fácil Congelada (kg),Super Frango,16.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Azeite de Oliva Andorinha Extra Virgem 250ml,Andorinha,17.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Azeite de Oliva Andorinha Extra Virgem 500ml,Andorinha,23.85,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Azeitona Verde Nucete com Caroço 500g,Nucete,13.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Azeitona Verde Rainha Sachê com Caroço 80g,Rainha,2.65,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Açúcar Cristal União 5kg,União,12.45,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Bacon Aurora Fatiado (500g),Aurora,25.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Bacon de Paleta Bonfrigo (kg),Bonfrigo,19.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Bacon de Paleta Bonfrigo kg,Bonfrigo,19.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Batata Inglesa (kg),,3.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Batata Inglesa kg,,3.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Batata Mais Batata (400g),BemBrasil,6.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Batata Mais Batata 400g,Batata Mais,6.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Batata-Doce (kg),,3.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Batata-Doce kg,,3.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Bebida Fruta D+ TP (1L),D+,3.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Bebida Fruta D+ TP 1L,D+,3.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Bebida Suplementar Legger PET (520ml),Legger,2.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Beterraba (kg),,4.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Beterraba kg,,4.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Biscoito Cream Cracker Belma (300g),Belma,3.59,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Biscoito Cream Cracker Belma 300g,Belma,3.59,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Biscoito Recheado Belma (90g),Belma,1.59,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Biscoito Recheado Belma Chocomuuu 55g,Belma,0.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Biscoito Recheado Belma Chocomuuuu (55g),Belma,0.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Biscoito Recheado Bono (90g),Bono,2.39,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Biscoito Rosquinha Recheada Rancheiro (90g),Rancheiro,1.49,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Bitter Campari 748ml,Campari,39.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Body Splash Carmed 200ml,Carmed,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,CESTO ASTRA MULTIUSO COM TAMPA (6L),Astra,29.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,CHALEIRA ELÉTRICA MULTILASER (220V),Multilaser,29.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Camarão Descascado Cinza 30/50 Qualimar Congelado Cozido (180g),Qualimar,24.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Camarão Descascado Cinza 30/50 Qualimar Congelado Cozido 180g,Qualimar,24.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Cenoura Comum (kg),,1.25,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Cenoura Comum kg,,1.25,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Cerveja Amstel Lager Puro Malte Lata 269ml,Amstel,2.88,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Cerveja Antarctica Original Pilsen Lata 350ml,Antarctica,3.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Cerveja Bavaria Pilsen Lata 350ml,Bavaria,1.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Cerveja Budweiser Pilsen Lata 269ml,Budweiser,2.79,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Cerveja Eisenbahn Pilsen Puro Malte Lata 269ml,Eisenbahn,2.49,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Cerveja Heineken Sleek Lager Puro Malte Lata 350ml,Heineken,4.78,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Chaleira Elétrica Multilaser 220V,Multilaser,29.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Coco Ralado Sabor Nordeste Úmido Adoçado (100g),Sabor Nordeste,3.29,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Colônia Baby João e Maria 200ml,João e Maria,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Condicionador Baby João e Maria 200ml,João e Maria,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Condicionador Elseve 400ml,Elseve,19.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Coxa Sobrecoxa Nutriza Congelada Dorsal (kg),Nutriza,7.85,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Coxa Sobrecoxa Nutriza Congelada Dorsal kg,Nutriza,7.85,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Creme Dental Closeup White Now Remove Manchas 70g,Closeup,5.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Creme Dental Good Smiles Menta com Flúor Fresh 90g,Good Smiles,2.65,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Creme Leave-In Elseve 100ml,Elseve,19.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Creme de Leite Bendito TP (200g),Bendito,1.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Creme de Leite Bendito TP 200g,Bendito,1.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Creme de Pentear Elseve 250ml,Elseve,19.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Creme de Tratamento Elseve 300g,Elseve,19.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Desinfetante Oeste 5L,Oeste,9.95,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Desinfetante Zupp 2L,Zupp,4.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Desodorante Aerosol Dove Antitranspirante 250ml,Dove,17.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Desodorante Aerosol Monange Antitranspirante 150ml,Monange,7.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Desodorante Aerossol Super Leve Mais Pague Menos 250ml,Super,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Desodorante Roll-On Banho a Banho 50ml ou Sabonete Líquido Flor de Ypê 250ml,Banho a Banho,6.90,2026-11-25,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Desodorante em Creme Banho a Banho 55g,Banho a Banho,7.90,2026-11-25,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,ESPONJA CONDOR MULTIUSO,Condor,4.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Enxaguante Bucal Cimed Super 12 Horas 500ml,Cimed,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Esponja de Aço Bombril Eco 1001 Utilidades 45g,Bombril,1.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Extrato de Tomate Elefante Tradicional Pote 300g,Elefante,5.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Farinha de Trigo Araguaia Premium 1kg,Araguaia,2.78,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Farinha de Trigo Emegê Especial 1kg,Emegê,3.67,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Feijão Carioca Dona Cota 1kg,Dona Cota,8.75,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Feijão Carioca Dona Dê 1kg,Dona Dê,6.58,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Feijão Carioca MC Gold 1kg,MC Gold,5.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Feijão Preto Dona Dê 1kg,Dona Dê,6.95,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Frango Assado Tatico (und),Tatico,19.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Frango Assado Tatico kg,Tatico,19.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Frango Super Frango Resfriado (kg),Super Frango,7.85,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Frango Super Frango Resfriado kg,Super Frango,7.85,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,GEL DENTAL CIMED SUPER 12 HORAS (90G),Cimed,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,"GUARDANAPO MAXIM FOLHA DUPLA (50FOLHAS 22,3X22,3CM)",Maxim,3.79,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Gel Dental Carmed Fini Com Flúor 70g,Carmed,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Gelatina Apti Vit (20g),Apti,0.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Gelatina Apti Vit 20g,Apti,0.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Geleia Queensberry Gourmet (310G),Queensberry,19.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Geleia Queensberry Gourmet 310g,Queensberry,19.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Granola Jasmine Integral (180g),Jasmine,21.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,HIDRATANTE CORPORAL CARMED (150G),Carmed,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,HIDRATANTE LABIAL CARMED (10G),Carmed,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,HIDRATANTE LABIAL CARMED 3 EM 1 GLITTER (10G),Carmed,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,HIDRATANTE LABIAL CARMED ANA CASTELA (10G),Carmed,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,HIDRATANTE LABIAL CARMED COCA-COLA (10G),Carmed,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,HIDRATANTE LABIAL CARMED FINI (10G),Carmed,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Hidratante Corporal Banho a Banho 200ml,Banho a Banho,8.90,2026-11-25,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Hidratante Corporal Banho a Banho Pump 400ml,Banho a Banho,10.90,2026-11-25,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Iogurte Canto Minas (180g),Canto de Minas,3.69,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,"Iogurte Goianinho Garrafa Polpa (1,100g)",Goianinho,7.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Iogurte Goianinho Integral (160g),Goianinho,2.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Iogurte Goianinho Misto (100g),Goianinho,10.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Iogurte Goody Looney Tunes Pouch (100g),Looney Tunes,2.65,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Iogurte Nestlé Garrafa (1150g),Nestlé,12.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Iogurte Nestlé Garrafa 1150g,Nestlé,12.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Iogurte Nestlé Garrafa Zero (1150g),Nestlé,13.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Isotônico Powerade Pro PET (500ml),Powerade,3.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Ketchup Quero Squeeze Tradicional 400g,Quero,6.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Kit Sabonete em Barra Flor de Ypê 85g 6 Und,Flor de Ypê,12.90,2026-11-25,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Kit Seda Shampoo 300ml + Condicionador 190ml,Seda,13.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Kit com 2und Sabonete Íntimo Hidramais Femme 400ml,Hidramais,12.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Lasanha Congelada Mamma Dalva (600g),Mamma Dalva,7.85,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Lasanha Congelada Mamma Dalva 600g,Mamma Dalva,7.85,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Lava-Louças Oeste 500ml,Oeste,1.65,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Lava-Roupas Líquido Omo Sachê 900ml,Omo,14.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Lava-Roupas Líquido Ápyce 3L,Ápyce,17.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Lava-Roupas em Pó Omo Todo Ciclo Caixa 2kg,Omo,23.85,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,"Lava-Roupas em Pó Tixan Ypê Caixa 2,2kg",Tixan Ypê,20.95,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Leite Fermentado Chamyto (6x75g),Chamyto,5.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Leite Fermentado Chamyto 6x75g,Chamyto,5.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Leite de Coco Sabor Nordeste Vidro (200ml),Sabor Nordeste,3.29,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Limpa Alumínio Estrela 500ml,Estrela,3.49,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Linguiça Churrasco Bonfrigo Resfriada (kg),Bonfrigo,13.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Linguiça Churrasco Bonfrigo Resfriada kg,Bonfrigo,13.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Linguiça Mista Sadia Defumada (215g),Sadia,6.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Linguiça Mista Sadia Defumada 215g,Sadia,6.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Macarrão Instantâneo Nissin Lámen 85g,Nissin,1.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Macarrão de Sêmola Espaguete Cristal 500g,Cristal,2.65,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Macarrão para Lasanha Pré-Cozida Cristal 200g,Cristal,3.79,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Maionese Hellmanns Tradicional Pote 500g,Hellmanns,8.95,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Manteiga Italac Primeira Qualidade com Sal (500g),Italac,15.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Manteiga Italac Primeira Qualidade com Sal 500g,Italac,15.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Margarina Qualy Tradicional com Sal (500g),Qualy,6.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Margarina Qualy Tradicional com Sal 500g,Qualy,6.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Massa de Tapioca Kodilar Tradicional 400g,Kodilar,2.79,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Maçã Fuji (kg),,5.75,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Maçã Fuji kg,,5.75,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Milho-Verde Etti em Conserva Lata 170g,Etti,2.47,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Mortadela Tubular Nobre Peça (kg),Nobre,4.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,PALITO PETISCO PARANÁ BAMBU (100UND),Paraná,2.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,PAPEL HIGIÊNICO STYLUS FOLHA DUPLA (24 ROLOS DE 20M),Stylus,15.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,PAPEL TOALHA MAXIM (400FOLHAS),Maxim,14.85,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,"PAPEL TOALHA MAXIM STYLUS (20,5X19CM)",Maxim,4.49,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,PAPEL TOALHA SEPAC MAXIM (200FOLHAS),Maxim,8.85,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Pack Sabonete em Barra Banho a Banho 6 Und,Banho a Banho,15.90,2026-11-25,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Pack com 6 Sabonete em Barra Above Leve Mais E Pague Menos,Above,9.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Pack com 6 Sabonete em Barra Banho a Banho,Banho a Banho,11.94,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Palmito Belo Monte Açaizeiro Inteiro 300g,Belo Monte,16.85,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Panetone Tatico Frutas (380g),Tatico,6.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Panetone Tatico Gotas de Chocolate (380g),Tatico,7.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Papel Higiênico Stylus Folha Dupla 24 Rolos de 20m,Stylus,15.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Pera Portuguesa (kg),,12.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Pernil Suíno Aurora Congelado Com Pele e Osso (kg),Aurora,15.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Pernil Suíno Aurora Congelado Com Pele e Osso kg,Aurora,15.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Petit Suisse Goianinho Morango (320g),Goianinho,4.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Presunto Cozido Suinco Fatiado (180g),Suinco,5.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Presunto Cozido Suíno Fatiado 180g,,5.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Pão de Alho Frango Aurora Rigonali 350g,Aurora,7.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Pão de Alho Rigonali (350g),Rigonali,7.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Pão de Forma Tatico Tradicional (350g),Tatico,5.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Pão de Queijo Lorita (800g),Lorita,7.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Pão de Queijo Lorita 800g,Lorita,7.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Pêssego Nacional (kg),,6.95,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Pêssego Nacional kg,,6.95,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Queijo Mussarela Amanhecer Fatiado (700g),Amanhecer,29.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Queijo Mussarela Mandaká Fatiado 150g,Mandaká,5.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Queijo Mussarela Mandáká Fatiado (150g),Mandáká,5.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Refresco em Pó Sotrix (21g),Sotrix,0.59,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Refrigerante Coca-Cola Lata (350ml),Coca-Cola,3.69,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Refrigerante Guaraná Antarctica PET (600ml),Guaraná Antarctica,4.69,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Refrigerante Kuat Guaraná PET (2L),Kuat,4.78,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Refrigerante Kuat Guaraná Pet 2L,Kuat,4.78,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Repolho Verde (kg),,2.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Repolho Verde kg,,2.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Requeijão Cremoso Danone Tradicional (200g),Danone,5.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Requeijão Cremoso Danone Tradicional 200g,Danone,5.89,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Requeijão Polenghi Cremoso (200g),Polenghi,6.97,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Rosquinha Adoralle de Coco (600g),Adoralle,3.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Rosquinha Adoralle de Coco 600g,Adoralle,3.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Sabonete Líquido Baby João e Maria 200ml,João e Maria,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Sabonete Líquido Banho a Banho 250ml,Banho a Banho,8.90,2026-11-25,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Sabonete Líquido Banho a Banho Refil 500ml,Banho a Banho,14.90,2026-11-25,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Sabonete Líquido Bebê João e Maria Refil 180ml,João e Maria,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Sabonete Líquido Flor de Ypê Refil 200ml,Flor de Ypê,5.90,2026-11-25,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Sabonete Líquido Óleo Banho a Banho 250ml,Banho a Banho,17.90,2026-11-25,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Sabonete em Barra Baby João e Maria 75g,João e Maria,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Sabonete em Barra Banho a Banho 90g,Banho a Banho,3.89,2026-11-25,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Sabonete em Barra Flor de Ypê com Hidratante 85g,Flor de Ypê,2.99,2026-11-25,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Sabão em Barra Ypê Glicerinado 800g,Ypê,8.95,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Shampoo Baby João e Maria 200ml,João e Maria,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Shampoo Baby João e Maria 400ml,João e Maria,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Suco Bebah Integral Tinto PET (1350ml),Bebah,12.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Suco Campo Largo Uva PET (900ml),Campo Largo,11.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,"Suco Del Valle Frut PET (1,5L)",Del Valle,4.29,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,TAPETE CONFORTO TIJOLINHO (38X58),,12.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Uva Isis Sem Semente (500g),,5.75,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Uva Vitória Sem Semente (500g),,5.75,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Uva Vitória ou Uva Isis Sem Semente 500g,,5.75,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,VITAMINA C ACEVITON + ZINCO (30 COMPRIMIDOS EFERVESCENTES),Aceviton,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Vinho Julia Florista 750ml,Julia Florista,44.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Vinho Tinto Pergola Suave 750ml,Pergola,21.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Vodka Smirnoff Ice Lata 269ml,Smirnoff,5.49,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Whisky Johnnie Walker Red Label 750ml,Johnnie Walker,69.90,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Água Sanitária Oeste 5L,Oeste,9.98,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Água Tônica Mineiro Lata (269ml),Mineiro,2.69,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Água com Gás Porto Real Adicionada de Sais (500ml),Porto Real,1.49,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Óleo Baby João e Maria 200ml,João e Maria,20.00,2026-11-29,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Óleo de Oliva Bagaço 100% Gallo Extra Suave 500ml,Gallo,16.99,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
+2026-11-21,Tatico,Óleo de Soja Vila Velha 900ml,Vila Velha,6.17,2026-11-22,https://taticobaratotododia.com.br/gyn/tabloide/,
