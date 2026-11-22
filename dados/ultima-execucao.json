@@ -1,16 +1,16 @@
 {
- "quando": "2026-11-21T06:59:50-03:00",
- "chamadas_ia": 7,
+ "quando": "2026-11-22T06:54:40-03:00",
+ "chamadas_ia": 3,
  "limite_atingido": false,
  "parou_por_tempo": false,
  "erro_ia": "",
- "ofertas_novas": 257,
+ "ofertas_novas": 86,
  "lojas": {
   "Tatico": {
-   "imagens": 17,
-   "imagens_novas": 17,
-   "imagens_lidas": 17,
-   "ofertas": 237
+   "imagens": 18,
+   "imagens_novas": 6,
+   "imagens_lidas": 6,
+   "ofertas": 66
   },
   "Pro Brazilian": {
    "imagens": 0,
@@ -19,8 +19,8 @@
    "ofertas": 20
   },
   "Assaí": {
-   "imagens": 7,
-   "imagens_novas": 7,
+   "imagens": 9,
+   "imagens_novas": 9,
    "imagens_lidas": 0,
    "ofertas": 0
   },
